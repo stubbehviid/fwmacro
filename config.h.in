@@ -1,0 +1,46 @@
+// =================================================
+// === THIS FILE IS AUTO GENERATED - DO NOT EDIT ===
+// =================================================
+
+#ifndef __${CMAKE_PROJECT_NAME}_cmake_config_h
+#define __${CMAKE_PROJECT_NAME}_cmake_config_h
+
+#include <string>
+
+namespace ${CMAKE_PROJECT_NAME}
+{
+
+const int VERSION_MAJOR    = @CMAKE_PROJECT_VERSION_MAJOR@;
+const int VERSION_MINOR    = @CMAKE_PROJECT_VERSION_MINOR@;
+const int VERSION_PATCH    = @CMAKE_PROJECT_VERSION_PATCH@;
+
+inline std::string version()
+       {return std::string("@CMAKE_PROJECT_VERSION_MAJOR@.@CMAKE_PROJECT_VERSION_MINOR@.@CMAKE_PROJECT_VERSION_PATCH@");};
+
+// Handle SIMD configuration
+#cmakedefine USE_SSE
+#cmakedefine USE_SSE2
+#cmakedefine USE_AVX
+#cmakedefine USE_AVX2
+#cmakedefine USE_AVX512
+
+#ifdef USE_SSE
+#define USE_@LIB_NAME_UPPER@_SSE
+#endif
+#ifdef USE_SSE2
+#define USE_@LIB_NAME_UPPER@_SSE2
+#endif
+#ifdef USE_AVX
+#define USE_@LIB_NAME_UPPER@_AVX
+#endif
+#ifdef USE_AVX2
+#define USE_@LIB_NAME_UPPER@_AVX2
+#endif
+#ifdef USE_AVX512
+#define USE_@LIB_NAME_UPPER@_AVX512
+#endif
+
+};
+// end namespace
+
+#endif
