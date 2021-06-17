@@ -2,8 +2,8 @@
 set (LIB_NAME ${CMAKE_PROJECT_NAME})
 
 # generate the library core name as upper case string
-string(TOUPPER ${CMAKE_PROJECT_NAME} LIB_CORENAME_UPPER);
-string(TOUPPER ${LIB_NAME} LIB_NAME_UPPER);
+string(TOUPPER ${CMAKE_PROJECT_NAME} LIB_CORENAME_UPPER)
+string(TOUPPER ${LIB_NAME} LIB_NAME_UPPER)
 
 # handle symbol export under windows
 if(WIN32)
@@ -47,8 +47,8 @@ ENDIF()
 install (TARGETS ${LIB_NAME}
 		 EXPORT ${LIB_NAME}Targets
 		 RUNTIME DESTINATION ${INSTALL_BIN_DIR} COMPONENT bin
-		 LIBRARY DESTINATION ${INSTALL_LIB_DIR} COMPONENT shlib
-		 ARCHIVE DESTINATION ${INSTALL_LIB_DIR} COMPONENT lib)		  
+		 LIBRARY DESTINATION ${INSTALL_LIB_DIR}/${CMAKE_PROJECT_NAME} COMPONENT shlib
+		 ARCHIVE DESTINATION ${INSTALL_LIB_DIR}/${CMAKE_PROJECT_NAME} COMPONENT lib)		  
 	
 # PDB files on windows
 IF(MSVC)
@@ -69,56 +69,16 @@ export(TARGETS ${LIB_NAME} FILE "${PROJECT_BINARY_DIR}/${LIB_NAME}Targets.cmake"
 # (this registers the build-tree with a global CMake-registry)
 export(PACKAGE ${LIB_NAME})
 
-# Create the fwstdlibConfig.cmake and fwstdlibConfigVersion files
-file(RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}" "${INSTALL_INCLUDE_DIR}")
-
-# ... for the build tree
-#set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
-#configure_file(${CMAKE_PROJECT_NAME}Config.cmake.in "${PROJECT_BINARY_DIR}/${LIB_NAME}Config.cmake" @ONLY)
-
 # libConfig.cmake
-configure_file(libConfig.cmake.in "${PROJECT_BINARY_DIR}/${LIB_NAME}Config.cmake" @ONLY)
+configure_file(cmake/libConfig.cmake.in "${PROJECT_BINARY_DIR}/${LIB_NAME}Config.cmake" @ONLY)
 # libConfigVersion.cmake
-configure_file(libConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake" @ONLY)
+configure_file(cmake/libConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake" @ONLY)
 
 # Install the FooBarConfig.cmake and FooBarConfigVersion.cmake
 install(FILES  	"${PROJECT_BINARY_DIR}/${LIB_NAME}Config.cmake"
 				"${PROJECT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake"
-				DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
+				DESTINATION "${INSTALL_CMAKE_DIR}/${LIB_NAME}" COMPONENT dev)
 
 # Install the export set for use with the install-tree
-install(EXPORT ${LIB_NAME}Targets DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
+install(EXPORT ${LIB_NAME}Targets DESTINATION "${INSTALL_CMAKE_DIR}/${LIB_NAME}" COMPONENT dev)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-configure_package_config_file(${CMAKE_PROJECT_NAME}Config.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}Config.cmake
-  INSTALL_DESTINATION ${INSTALL_CMAKE_DIR}
-  PATH_VARS INSTALL_INCLUDE_DIR)
-
-# handle version  
-write_basic_package_version_file(
-  ${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake
-  VERSION ${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}.${CMAKE_PROJECT_VERSION_PATCH}
-  COMPATIBILITY SameMajorVersion )
-  
-# Install config
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}Config.cmake
-              ${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake
-			  DESTINATION ${INSTALL_CMAKE_DIR} )

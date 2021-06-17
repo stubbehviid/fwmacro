@@ -25,19 +25,19 @@ inline std::string version()
 #cmakedefine USE_AVX512
 
 #ifdef USE_SSE
-#define USE_@LIB_NAME_UPPER@_SSE
+#define USE_@LIB_CORENAME_UPPER@_SSE
 #endif
 #ifdef USE_SSE2
-#define USE_@LIB_NAME_UPPER@_SSE2
+#define USE_@LIB_CORENAME_UPPER@_SSE2
 #endif
 #ifdef USE_AVX
-#define USE_@LIB_NAME_UPPER@_AVX
+#define USE_@LIB_CORENAME_UPPER@_AVX
 #endif
 #ifdef USE_AVX2
-#define USE_@LIB_NAME_UPPER@_AVX2
+#define USE_@LIB_CORENAME_UPPER@_AVX2
 #endif
 #ifdef USE_AVX512
-#define USE_@LIB_NAME_UPPER@_AVX512
+#define USE_@LIB_CORENAME_UPPER@_AVX512
 #endif
 
 };
