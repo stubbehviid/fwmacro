@@ -19,3 +19,9 @@ include(cmake/compiler.cmake)
 
 # Configuration handling
 include(CMakePackageConfigHelpers)
+
+if(NOT BUILD_SHARED_LIB AND NOT BUILD_STATIC_LIB)
+	message(WARNING "You must select either both static or shared lib version or one of them")
+	message(FATAL_ERROR "Nothing will be built if both static and shared option is off")
+endif()
+
