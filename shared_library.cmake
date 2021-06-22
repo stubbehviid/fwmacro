@@ -13,7 +13,7 @@ else()
 endif()
 
 # find dependency packages
-foreach(pck IN SHARED_DEPENDENCY_LIBS)
+foreach(pck IN LISTS SHARED_DEPENDENCY_LIBS)
 	message(STATUS "Locating dependency package: ${pck}")
 	find_package(${pck} REQUIRED)
 endforeach()

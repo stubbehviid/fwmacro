@@ -6,7 +6,7 @@ string(TOUPPER ${CMAKE_PROJECT_NAME} LIB_CORENAME_UPPER)
 string(TOUPPER ${LIB_NAME} LIB_NAME_UPPER)
 
 # find dependency packages
-foreach(pck IN SHARED_DEPENDENCY_LIBS)
+foreach(pck IN LISTS SHARED_DEPENDENCY_LIBS)
 	message(STATUS "Locating dependency package: ${pck}")
 	find_package(${pck} REQUIRED)
 endforeach()
