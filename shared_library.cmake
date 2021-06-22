@@ -31,7 +31,7 @@ target_include_directories(${LIB_NAME} PUBLIC  ${INCLUDE_DEPENDENCY_DIRS} ${DEPE
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_SOURCE_DIR})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})
 	
-target_link_libraries(${LIB_NAME} ${DEPEND_LIBRARIES})
+target_link_libraries(${LIB_NAME} PUBLIC ${DEPEND_LIBRARIES})
 	
 # precompiled headers
 if(USE_PRECOMPILED_HEADERS)
