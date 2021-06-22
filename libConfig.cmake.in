@@ -2,6 +2,8 @@
 # It defines the following variables
 #  @LIB_CORENAME_UPPER@_INCLUDE_DIRS - include directories for FooBar
 #  @LIB_CORENAME_UPPER@_LIBRARIES    - libraries to link against
+#  @LIB_NAME@_INCLUDE_DIRS - include directories for FooBar
+#  @LIB_NAME@_LIBRARIES    - libraries to link against
 
 # Find cmake dir
 get_filename_component(SELF_DIR "${CMAKE_CURRENT_LIST_FILE}" DIRECTORY)
@@ -11,6 +13,8 @@ include("${SELF_DIR}/${CMAKE_BUILD_TYPE}/@LIB_NAME@Targets.cmake")
 
 # set include dir
 set(@LIB_CORENAME_UPPER@_INCLUDE_DIRS "@INSTALL_INCLUDE_DIR@" @LIB_DEPENDENCIES@)
+set(@LIB_NAME@_INCLUDE_DIRS "@INSTALL_INCLUDE_DIR@" @LIB_DEPENDENCIES@)
 
 # library
 set(@LIB_CORENAME_UPPER@_LIBRARIES @LIB_NAME@)
+set(@LIB_NAME@_LIBRARIES @LIB_NAME@)
