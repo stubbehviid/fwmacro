@@ -13,18 +13,25 @@ else()
 endif()
 
 # find dependency packages
+SET(DEPEND_INCLUDE_DIRS)
+SET(DEPEND_LIBRARIES)
 foreach(pck IN LISTS SHARED_DEPENDENCY_LIBS)
 	message(STATUS "Locating dependency package: ${pck}")
 	find_package(${pck} REQUIRED)
+	
+	SET(DEPEND_INCLUDE_DIRS ${DEPEND_INCLUDE_DIRS} ${pck}_INCLUDE_DIRS)
+	SET(DEPEND_LIBRARIES ${DEPEND_LIBRARIES} ${pck}_LIBRARIES)
 endforeach()
 
 # create the librare
 add_library(${LIB_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})	
 	
 #dependencies	
-target_include_directories(${LIB_NAME} PUBLIC  ${INCLUDE_DEPENDENCY_DIRS})
+target_include_directories(${LIB_NAME} PUBLIC  ${INCLUDE_DEPENDENCY_DIRS} ${DEPEND_INCLUDE_DIRS})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_SOURCE_DIR})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})
+	
+target_link_libraries(${LIB_NAME} ${DEPEND_LIBRARIES})
 	
 # precompiled headers
 if(USE_PRECOMPILED_HEADERS)
