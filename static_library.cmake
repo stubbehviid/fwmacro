@@ -5,11 +5,17 @@ set(LIB_NAME ${CMAKE_PROJECT_NAME}_static)
 string(TOUPPER ${CMAKE_PROJECT_NAME} LIB_CORENAME_UPPER)
 string(TOUPPER ${LIB_NAME} LIB_NAME_UPPER)
 
+# find dependency packages
+foreach(pck IN SHARED_DEPENDENCY_LIBS)
+	message(STATUS "Locating dependency package: ${pck}")
+	find_package(${pck} REQUIRED)
+endforeach()
+
 # create the library
 add_library(${LIB_NAME} STATIC ${SOURCE_FILES} ${HEADER_FILES})
 	
 #dependencies	
-target_include_directories(${LIB_NAME} PUBLIC  ${LIB_DEPENDENCIES})
+target_include_directories(${LIB_NAME} PUBLIC  ${INCLUDE_DEPENDENCY_DIRS})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_SOURCE_DIR})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})
 	

@@ -12,11 +12,17 @@ else()
 	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
 endif()
 
+# find dependency packages
+foreach(pck IN SHARED_DEPENDENCY_LIBS)
+	message(STATUS "Locating dependency package: ${pck}")
+	find_package(${pck} REQUIRED)
+endforeach()
+
 # create the librare
 add_library(${LIB_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})	
 	
 #dependencies	
-target_include_directories(${LIB_NAME} PUBLIC  ${LIB_DEPENDENCIES})
+target_include_directories(${LIB_NAME} PUBLIC  ${INCLUDE_DEPENDENCY_DIRS})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_SOURCE_DIR})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})
 	
