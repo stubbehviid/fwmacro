@@ -19,8 +19,8 @@ foreach(pck IN LISTS SHARED_DEPENDENCY_LIBS)
 	message(STATUS "Locating dependency package: ${pck}")
 	find_package(${pck} REQUIRED)
 	
-	SET(DEPEND_INCLUDE_DIRS ${DEPEND_INCLUDE_DIRS} ${pck}_INCLUDE_DIRS)
-	SET(DEPEND_LIBRARIES ${DEPEND_LIBRARIES} ${pck}_LIBRARIES)
+	SET(DEPEND_INCLUDE_DIRS ${DEPEND_INCLUDE_DIRS} ${${pck}_INCLUDE_DIRS})
+	SET(DEPEND_LIBRARIES ${DEPEND_LIBRARIES} ${${pck}_LIBRARIES})
 endforeach()
 
 # create the librare
