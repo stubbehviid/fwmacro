@@ -25,3 +25,12 @@ if(NOT BUILD_SHARED_LIB AND NOT BUILD_STATIC_LIB)
 	message(FATAL_ERROR "Nothing will be built if both static and shared option is off")
 endif()
 
+#-----------------------------------------------
+# Make relative paths absolute (needed later on)
+#-----------------------------------------------
+foreach(p LIB BIN INCLUDE CMAKE)
+  set(var INSTALL_${p}_DIR)
+  if(NOT IS_ABSOLUTE "${${var}}")
+    set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
+  endif()
+endforeach()
