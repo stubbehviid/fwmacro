@@ -7,7 +7,13 @@
 
 @PACKAGE_INIT@
 
-set_and_check(@LIB_NAME@_INCLUDE_DIRS "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@")
+# load targets
+#get_filename_component(SELF_DIR "${CMAKE_CURRENT_LIST_FILE}" DIRECTORY)
+#include("${SELF_DIR}/${CMAKE_BUILD_TYPE}/@LIB_NAME@Targets.cmake")
+
+set_and_check(@LIB_NAME@_INCLUDE_DIRS "@PACKAGE_INCLUDE_INSTALL_DIR@")
+
+
 
 check_required_components(@LIB_NAME@)
 
