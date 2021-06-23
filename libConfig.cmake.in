@@ -5,16 +5,9 @@
 #  @LIB_NAME@_INCLUDE_DIRS - include directories for FooBar
 #  @LIB_NAME@_LIBRARIES    - libraries to link against
 
-# Find cmake dir
-get_filename_component(SELF_DIR "${CMAKE_CURRENT_LIST_FILE}" DIRECTORY)
+@PACKAGE_INIT@
 
-# load targets
-include("${SELF_DIR}/${CMAKE_BUILD_TYPE}/@LIB_NAME@Targets.cmake")
+set_and_check(@LIB_NAME@_INCLUDE_DIRS "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@")
 
-# set include dir
-set(@LIB_CORENAME_UPPER@_INCLUDE_DIRS "@INSTALL_INCLUDE_DIR@/@CMAKE_PROJECT_NAME@" @LIB_DEPENDENCIES@)
-set(@LIB_NAME@_INCLUDE_DIRS "@INSTALL_INCLUDE_DIR@/@CMAKE_PROJECT_NAME@" @LIB_DEPENDENCIES@)
+check_required_components(@LIB_NAME@)
 
-# library
-set(@LIB_CORENAME_UPPER@_LIBRARIES @LIB_NAME@)
-set(@LIB_NAME@_LIBRARIES @LIB_NAME@)

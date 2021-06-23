@@ -13,25 +13,26 @@ else()
 endif()
 
 # find dependency packages
-SET(DEPEND_INCLUDE_DIRS)
-SET(DEPEND_LIBRARIES)
+SET(PACKAGE_DEPEND_INCLUDE_DIRS)
+SET(PACKAGE_DEPEND_LIBRARIES)
 foreach(pck IN LISTS SHARED_DEPENDENCY_LIBS)
 	message(STATUS "Locating dependency package: ${pck}")
 	find_package(${pck} REQUIRED)
 	
-	SET(DEPEND_INCLUDE_DIRS ${DEPEND_INCLUDE_DIRS} ${${pck}_INCLUDE_DIRS})
-	SET(DEPEND_LIBRARIES ${DEPEND_LIBRARIES} ${${pck}_LIBRARIES})
+	SET(PACKAGE_DEPEND_INCLUDE_DIRS ${PACKAGE_DEPEND_INCLUDE_DIRS} ${${pck}_INCLUDE_DIRS})
+	SET(PACKAGE_DEPEND_LIBRARIES ${PACKAGE_DEPEND_LIBRARIES} ${${pck}_LIBRARIES})
 endforeach()
 
 # create the librare
 add_library(${LIB_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})	
 	
 #dependencies	
-target_include_directories(${LIB_NAME} PUBLIC  ${INCLUDE_DEPENDENCY_DIRS} ${DEPEND_INCLUDE_DIRS})
+target_include_directories(${LIB_NAME} PUBLIC  ${INCLUDE_DEPENDENCY_DIRS} ${PACKAGE_DEPEND_INCLUDE_DIRS})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_SOURCE_DIR})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})
 	
-target_link_libraries(${LIB_NAME} PUBLIC ${DEPEND_LIBRARIES})
+message(STATUS "Depending on: ${DEPEND_LIBRARIES}")
+target_link_libraries(${LIB_NAME} PUBLIC ${PACKAGE_DEPEND_LIBRARIES})
 	
 # precompiled headers
 if(USE_PRECOMPILED_HEADERS)
@@ -59,19 +60,19 @@ ENDIF()
 # Installation
 install (TARGETS ${LIB_NAME}
 		 EXPORT ${LIB_NAME}Targets
-		 RUNTIME DESTINATION ${INSTALL_BIN_DIR} COMPONENT bin
-		 LIBRARY DESTINATION ${INSTALL_LIB_DIR}/${CMAKE_PROJECT_NAME} COMPONENT shlib
-		 ARCHIVE DESTINATION ${INSTALL_LIB_DIR}/${CMAKE_PROJECT_NAME} COMPONENT lib)		  
+		 RUNTIME DESTINATION ${BIN_INSTALL_DIR} COMPONENT bin
+		 LIBRARY DESTINATION ${LIB_INSTALL_DIR}/${CMAKE_PROJECT_NAME} COMPONENT shlib
+		 ARCHIVE DESTINATION ${LIB_INSTALL_DIR}/${CMAKE_PROJECT_NAME} COMPONENT lib)		  
 	
 # PDB files on windows
 IF(MSVC)
-	install(FILES "${CMAKE_BINARY_DIR}/Debug/${LIB_NAME}d.pdb" DESTINATION ${INSTALL_LIB_DIR} CONFIGURATIONS Debug)
-	install(FILES "${CMAKE_BINARY_DIR}/RelWithDebInfo/${LIB_NAME}.pdb" DESTINATION ${INSTALL_LIB_DIR} CONFIGURATIONS RelWithDebInfo)
+	install(FILES "${CMAKE_BINARY_DIR}/Debug/${LIB_NAME}d.pdb" DESTINATION ${LIB_INSTALL_DIR} CONFIGURATIONS Debug)
+	install(FILES "${CMAKE_BINARY_DIR}/RelWithDebInfo/${LIB_NAME}.pdb" DESTINATION ${LIB_INSTALL_DIR} CONFIGURATIONS RelWithDebInfo)
 ENDIF()	
 
 # include files
-install (FILES ${HEADER_FILES} DESTINATION ${INSTALL_INCLUDE_DIR})
-install (FILES ${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}_config.h DESTINATION ${INSTALL_INCLUDE_DIR})
+install (FILES ${HEADER_FILES} DESTINATION ${INCLUDE_INSTALL_DIR})
+install (FILES ${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}_config.h DESTINATION ${INCLUDE_INSTALL_DIR})
 
 # handle configuration
 
@@ -82,16 +83,23 @@ export(TARGETS ${LIB_NAME} FILE "${PROJECT_BINARY_DIR}/${LIB_NAME}Targets.cmake"
 # (this registers the build-tree with a global CMake-registry)
 export(PACKAGE ${LIB_NAME})
 
-# libConfig.cmake
-configure_file(cmake/libConfig.cmake.in "${PROJECT_BINARY_DIR}/${LIB_NAME}Config.cmake" @ONLY)
+# Configuration handling
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+configure_package_config_file(cmake/libConfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}Config.cmake	INSTALL_DESTINATION ${CMAKE_INSTALL_DIR}/${LIB_NAME}
+	                          PATH_VARS INCLUDE_INSTALL_DIR LIB_INSTALL_DIR)
+
 # libConfigVersion.cmake
-configure_file(cmake/libConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake" @ONLY)
+write_basic_package_version_file( ${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake
+								  VERSION ${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}.${CMAKE_PROJECT_VERSION_PATCH}
+								  COMPATIBILITY AnyNewerVersion )
 
 # Install the FooBarConfig.cmake and FooBarConfigVersion.cmake
-install(FILES  	"${PROJECT_BINARY_DIR}/${LIB_NAME}Config.cmake"
-				"${PROJECT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake"
-				DESTINATION "${INSTALL_CMAKE_DIR}/${LIB_NAME}" COMPONENT dev)
+install(FILES  	"${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}Config.cmake"
+				"${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake"
+				DESTINATION "${CMAKE_INSTALL_DIR}/${LIB_NAME}" COMPONENT dev)
 
 # Install the export set for use with the install-tree
-install(EXPORT ${LIB_NAME}Targets DESTINATION "${INSTALL_CMAKE_DIR}/${LIB_NAME}" COMPONENT dev)
+install(EXPORT ${LIB_NAME}Targets DESTINATION "${CMAKE_INSTALL_DIR}/${LIB_NAME}" COMPONENT dev)
 
