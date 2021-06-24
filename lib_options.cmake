@@ -3,10 +3,10 @@ OPTION (BUILD_SHARED_LIB "Build fwstdlib as shared library" ON)
 OPTION (BUILD_STATIC_LIB "Build fwstdlib as static library" ON)
 OPTION (USE_PRECOMPILED_HEADERS "Use precompiled headers" ON)
 
-set(LIB_INSTALL_DIR lib CACHE PATH "Installation directory for libraries")
-set(BIN_INSTALL_DIR bin CACHE PATH "Installation directory for executables")
-set(INCLUDE_INSTALL_DIR include CACHE PATH "Installation directory for header files")
-set(CMAKE_INSTALL_DIR lib/cmake CACHE PATH "Installation directory for cmake files")
+set(LIB_INSTALL_DIR "" CACHE PATH "Installation directory for libraries")
+set(BIN_INSTALL_DIR "" CACHE PATH "Installation directory for executables")
+set(INCLUDE_INSTALL_DIR "" CACHE PATH "Installation directory for header files")
+set(CMAKE_INSTALL_DIR "" CACHE PATH "Installation directory for cmake files")
 
 # Check for compatibility with precompiled headers
 if(BUILD_SHARED_LIB AND BUILD_STATIC_LIB)
