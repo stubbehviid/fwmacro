@@ -16,7 +16,7 @@ else()
 endif()
 
 # find dependency packages
-SET(DEPENDENCY_INCLUDE_DIRS ${INCLUDE_DEPENDENCY_DIRS})
+SET(DEPENDENCY_INCLUDE_DIRS "" ${INCLUDE_DEPENDENCY_DIRS})
 SET(DEPENDENCY_LIBRARIES)
 foreach(pck IN LISTS SHARED_DEPENDENCY_LIBS)
 	message(STATUS "Locating dependency package: ${pck}")

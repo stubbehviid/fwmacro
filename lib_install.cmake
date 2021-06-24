@@ -66,6 +66,11 @@ export(TARGETS ${LIB_NAME} FILE "${PROJECT_BINARY_DIR}/${TARGETS_FILE}")
 # (this registers the build-tree with a global CMake-registry)
 export(PACKAGE ${LIB_NAME})
 
+# make sure that DEPENDENCY_INCLUDE_DIRS is defined
+if("${DEPENDENCY_INCLUDE_DIRS}" STREQUAL "")
+  set(DEPENDENCY_INCLUDE_DIRS "")
+endif()
+
 # generate config file
 configure_package_config_file(cmake/libConfig.cmake.in ${PROJECT_BINARY_DIR}/${CONFIG_FILE}	INSTALL_DESTINATION ${MODULE_CMAKE_INSTALL_DIR}
 	                          PATH_VARS MODULE_INCLUDE_INSTALL_DIR 
