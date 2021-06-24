@@ -60,8 +60,8 @@ install (TARGETS ${LIB_NAME}
 	
 # PDB files on windows
 IF(MSVC)
-	install(FILES "${CMAKE_BINARY_DIR}/Debug/${LIB_NAME}d.pdb" DESTINATION ${LIB_INSTALL_DIR}/${CMAKE_PROJECT_NAME} CONFIGURATIONS Debug)
-	install(FILES "${CMAKE_BINARY_DIR}/RelWithDebInfo/${LIB_NAME}.pdb" DESTINATION ${LIB_INSTALL_DIR}/${CMAKE_PROJECT_NAME} CONFIGURATIONS RelWithDebInfo)
+	install(FILES "${PROJECT_BINARY_DIR}/Debug/${LIB_NAME}d.pdb" DESTINATION ${LIB_INSTALL_DIR}/${CMAKE_PROJECT_NAME} CONFIGURATIONS Debug)
+	install(FILES "${PROJECT_BINARY_DIR}/RelWithDebInfo/${LIB_NAME}.pdb" DESTINATION ${LIB_INSTALL_DIR}/${CMAKE_PROJECT_NAME} CONFIGURATIONS RelWithDebInfo)
 ENDIF()	
 
 # include files
@@ -81,11 +81,11 @@ export(PACKAGE ${LIB_NAME})
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-configure_package_config_file(cmake/libConfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}Config.cmake	INSTALL_DESTINATION ${CMAKE_INSTALL_DIR}/${LIB_NAME}
+configure_package_config_file(cmake/libConfig.cmake.in ${PROJECT_BINARY_DIR}/${LIB_NAME}Config.cmake	INSTALL_DESTINATION ${CMAKE_INSTALL_DIR}/${LIB_NAME}
 	                          PATH_VARS INCLUDE_INSTALL_DIR LIB_INSTALL_DIR )
 
 # libConfigVersion.cmake
-write_basic_package_version_file( ${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake
+write_basic_package_version_file( ${PROJECT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake
 								  VERSION ${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}.${CMAKE_PROJECT_VERSION_PATCH}
 								  COMPATIBILITY AnyNewerVersion )
 
@@ -93,8 +93,8 @@ write_basic_package_version_file( ${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}ConfigV
 #configure_file(cmake/libConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake" @ONLY)
 
 # Install the FooBarConfig.cmake and FooBarConfigVersion.cmake
-install(FILES  	"${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}Config.cmake"
-				"${CMAKE_CURRENT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake"
+install(FILES  	"${PROJECT_BINARY_DIR}/${LIB_NAME}Config.cmake"
+				"${PROJECT_BINARY_DIR}/${LIB_NAME}ConfigVersion.cmake"
 				DESTINATION "${CMAKE_INSTALL_DIR}/${LIB_NAME}" COMPONENT dev)
 
 # Install the export set for use with the install-tree
