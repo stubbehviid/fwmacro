@@ -1,15 +1,39 @@
+# Module will handle the creation of a CUDA compatible static library
+#
+# The following input variables must be set:
+# 
+#	SOURCE_FILES			- cpp source files
+#	HEADER_FILES			- h header files
+#	CUDA_SOURCE_FILES		- cu cuda source files
+#	CUDA_HEADER_FILES		- ch cuda header files
+#	INCLUDE_DEPENDENCY_DIRS	- list of modules that should be linked (can be empty but must exist)
+#	STATIC_DEPENDENCY_LIBS	- list of directories that should be included (can be empty but must exist)
+#
+# The following input variable can be set
+#	STATIC_DEPENDENCY_LIBS_OTHER	- list of library files not part of the cmake package system
+#	ADDITIONAL_SOURCE_INCLUDE_DIRS	- Additional list of include dirs needed for the project internal)
+
+
 #define library name
-set(LIB_NAME ${CMAKE_PROJECT_NAME}_static)
+set(LIB_NAME ${CMAKE_PROJECT_NAME}_cuda_static)
 message(STATUS "-------------------------------------------")
-message(STATUS "Generating ${LIB_NAME} static library")
+message(STATUS "Generating ${LIB_NAME} static cuda library")
 message(STATUS "-------------------------------------------")
+
+# configure CUDA
+include(cmake/cuda.cmake)
+
+# set active CUDA flags
+set(CMAKE_CUDA_FLAGS ${CMAKE_CUDA_FLAGS_STATIC})
+set(CUDA_LIBRARIES ${CUDA_LIBRARIES_STATIC})
+
 
 # generate the library core name as upper case string
 string(TOUPPER ${CMAKE_PROJECT_NAME} LIB_CORENAME_UPPER)
 string(TOUPPER ${LIB_NAME} LIB_NAME_UPPER)
 
 # find dependency packages
-SET(DEPENDENCY_INCLUDE_DIRS ${INCLUDE_DEPENDENCY_DIRS})
+SET(DEPENDENCY_INCLUDE_DIRS "" ${INCLUDE_DEPENDENCY_DIRS})
 SET(DEPENDENCY_LIBRARIES)
 foreach(pck IN LISTS STATIC_DEPENDENCY_LIBS)
 	message(STATUS "Locating dependency package: ${pck}")
@@ -24,13 +48,20 @@ message(STATUS ${DEPEND_LIBRARIES})
 # create the library
 add_library(${LIB_NAME} STATIC ${SOURCE_FILES} ${HEADER_FILES} ${CUDA_SOURCE_FILES} ${CUDA_HEADER_FILES})
 	
-#dependencies	
+# set include and library dirs
 target_include_directories(${LIB_NAME} PUBLIC  ${DEPENDENCY_INCLUDE_DIRS})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_SOURCE_DIR})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})
+target_include_directories(${LIB_NAME} PUBLIC  ${CUDA_INCLUDE_DIRS})
+if(NOT "${ADDITIONAL_SOURCE_INCLUDE_DIRS}" STREQUAL "")
+	target_include_directories(${LIB_NAME} PRIVATE  ${ADDITIONAL_SOURCE_INCLUDE_DIRS})
+endif()
 	
+target_link_directories(${LIB_NAME} PUBLIC ${CUDA_LIBRARY_DIR})
+	
+# set library dependencies	
 message(STATUS "Depending on: ${DEPEND_LIBRARIES}")
-target_link_libraries(${LIB_NAME} PUBLIC ${DEPENDENCY_LIBRARIES})
+target_link_libraries(${LIB_NAME} PUBLIC ${DEPENDENCY_LIBRARIES} ${STATIC_DEPENDENCY_LIBS_OTHER} ${CUDA_LIBRARIES})
 	
 # precompiled headers
 if(USE_PRECOMPILED_HEADERS)
@@ -54,5 +85,5 @@ IF(MSVC)
 ENDIF()
 
 
-#installation
+# Installation
 include(cmake/lib_install.cmake)

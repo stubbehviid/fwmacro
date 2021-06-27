@@ -13,19 +13,19 @@ if(NOT CUDA_CONFIGURED)
 	# enable CUDA language
 	enable_language(CUDA)
 		
-	set(CMAKE_CUDA_GENERAL_FLAGS ${CMAKE_CUDA_FLAGS} --device-link --std=c++17)
+	set(CMAKE_CUDA_GENERAL_FLAGS ${CMAKE_CUDA_FLAGS} --device-link)# --std=c++17)
 	
 	if(USE_CUDA_FAST_MATH)
 		set(CMAKE_CUDA_GENERAL_FLAGS ${CMAKE_CUDA_GENERAL_FLAGS} -use_fast_math)
 	endif()
 	
 	# various language options
-	set(CMAKE_CUDA_GENERAL_FLAGS ${CMAKE_CUDA_GENERAL_FLAGS} -Xcudafe 
-															 --diag_suppress=extra_semicolon 
-															 --diag_suppress=exception_spec_override_incompat
-															 --diag_suppress=boolean_controlling_expr_is_constant
-															 --diag_suppress=unsigned_compare_with_zero
-															 --diag_suppress=generated_exception_spec_override_incompat )
+	#set(CMAKE_CUDA_GENERAL_FLAGS ${CMAKE_CUDA_GENERAL_FLAGS} -Xcudafe 
+	#														 --diag_suppress=extra_semicolon 
+	#														 --diag_suppress=exception_spec_override_incompat
+	#														 --diag_suppress=boolean_controlling_expr_is_constant
+	#														 --diag_suppress=unsigned_compare_with_zero
+	#														--diag_suppress=generated_exception_spec_override_incompat )
 	
 	set(CMAKE_CUDA_FLAGS_STATIC ${CMAKE_CUDA_GENERAL_FLAGS} -cudart static)
 	set(CMAKE_CUDA_FLAGS_SHARED ${CMAKE_CUDA_GENERAL_FLAGS} -cudart shared)
@@ -51,8 +51,8 @@ if(NOT CUDA_CONFIGURED)
 	# Find all the required cuda libraries
 
 	# start with the runtime
-	set(CUDA_STATIC_LIBRARIES cudart_static)
-	set(CUDA_SHARED_LIBRARIES cudart)
+	set(CUDA_LIBRARIES_STATIC cudart_static)
+	set(CUDA_LIBRARIES_SHARED cudart)
 
 	# search for cuda utility libraries
 	# find the test source files
@@ -67,16 +67,16 @@ if(NOT CUDA_CONFIGURED)
 	# Strip file extensionm of library names
 	foreach(X IN LISTS CUDALIBS)	
 		get_filename_component(Y ${X} NAME_WLE)	
-		set(CUDA_STATIC_LIBRARIES ${CUDA_STATIC_LIBRARIES} ${Y})
-		set(CUDA_SHARED_LIBRARIES ${CUDA_SHARED_LIBRARIES} ${Y})
+		set(CUDA_LIBRARIES_STATIC ${CUDA_LIBRARIES_STATIC} ${Y})
+		set(CUDA_LIBRARIES_SHARED ${CUDA_LIBRARIES_SHARED} ${Y})
 	endforeach()
 
 	message(STATUS "CMAKE_CUDA_COMPILER   	= ${CMAKE_CUDA_COMPILER}")
 	message(STATUS "CMAKE_CUDA_FLAGS      	= ${CMAKE_CUDA_FLAGS}")
 	message(STATUS "CUDA_INCLUDE_DIRS     	= ${CUDA_INCLUDE_DIRS}")
 	message(STATUS "CUDA_LIBRARY_DIR      	= ${CUDA_LIBRARY_DIR}")
-	message(STATUS "CUDA_STATIC_LIBRARIES 	= ${CUDA_STATIC_LIBRARIES}")
-	message(STATUS "CUDA_SHARED_LIBRARIES 	= ${CUDA_SHARED_LIBRARIES}")
+	message(STATUS "CUDA_LIBRARIES_STATIC 	= ${CUDA_LIBRARIES_STATIC}")
+	message(STATUS "CUDA_LIBRARIES_SHARED 	= ${CUDA_LIBRARIES_STATIC}")
 	message(STATUS "CMAKE_CUDA_FLAGS_STATIC = ${CMAKE_CUDA_FLAGS_STATIC}")
 	message(STATUS "CMAKE_CUDA_FLAGS_SHARED = ${CMAKE_CUDA_FLAGS_SHARED}")
 

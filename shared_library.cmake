@@ -1,3 +1,18 @@
+# Module will handle the creation of a CUDA compatible static library
+#
+# The following input variables must be set:
+# 
+#	SOURCE_FILES			- cpp source files
+#	HEADER_FILES			- h header files
+#	CUDA_SOURCE_FILES		- cu cuda source files
+#	CUDA_HEADER_FILES		- ch cuda header files
+#	INCLUDE_DEPENDENCY_DIRS	- list of modules that should be linked (can be empty but must exist)
+#	SHARED_DEPENDENCY_LIBS	- list of directories that should be included (can be empty but must exist)
+#
+# The following input variable can be set
+#	SHARED_DEPENDENCY_LIBS_OTHER	- list of library files not part of the cmake package system
+#	ADDITIONAL_SOURCE_INCLUDE_DIRS	- Additional list of include dirs needed for the project internal)
+
 #define the library name
 set (LIB_NAME ${CMAKE_PROJECT_NAME})
 message(STATUS "-------------------------------------------")
@@ -29,13 +44,16 @@ endforeach()
 # create the librare
 add_library(${LIB_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})	
 	
-#dependencies	
+# set include and library dirs
 target_include_directories(${LIB_NAME} PUBLIC  ${DEPENDENCY_INCLUDE_DIRS})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_SOURCE_DIR})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})
+if(NOT "${ADDITIONAL_SOURCE_INCLUDE_DIRS}" STREQUAL "")
+	target_include_directories(${LIB_NAME} PRIVATE  ${ADDITIONAL_SOURCE_INCLUDE_DIRS})
+endif()
 	
 message(STATUS "Depending on: ${DEPEND_LIBRARIES}")
-target_link_libraries(${LIB_NAME} PUBLIC ${DEPENDENCY_LIBRARIES})
+target_link_libraries(${LIB_NAME} PUBLIC ${DEPENDENCY_LIBRARIES} ${SHARED_DEPENDENCY_LIBS_OTHER})
 	
 # precompiled headers
 if(USE_PRECOMPILED_HEADERS)
