@@ -15,22 +15,26 @@
 
 
 #define library name
-set(LIB_NAME ${CMAKE_PROJECT_NAME}_cuda_static)
+set(LIB_CORE_NAME ${CMAKE_PROJECT_NAME}_cuda)
+set(LIB_NAME ${LIB_CORE_NAME}_static)
 message(STATUS "-------------------------------------------")
 message(STATUS "Generating ${LIB_NAME} static cuda library")
 message(STATUS "-------------------------------------------")
 
 # configure CUDA
-include(cmake/cuda.cmake)
+include(cuda)
 
 # set active CUDA flags
 set(CMAKE_CUDA_FLAGS ${CMAKE_CUDA_FLAGS_STATIC})
 set(CUDA_LIBRARIES ${CUDA_LIBRARIES_STATIC})
 
-
 # generate the library core name as upper case string
 string(TOUPPER ${CMAKE_PROJECT_NAME} LIB_CORENAME_UPPER)
 string(TOUPPER ${LIB_NAME} LIB_NAME_UPPER)
+
+# Handle configuration
+find_file(H_CONFIG_IN config.h.in PATHS ${CMAKE_CURRENT_SOURCE_PATH} ${CMAKE_MODULE_PATH})
+configure_file ("${H_CONFIG_IN}" "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}_config.h" )
 
 # find dependency packages
 SET(DEPENDENCY_INCLUDE_DIRS "" ${INCLUDE_DEPENDENCY_DIRS})
@@ -63,6 +67,9 @@ target_link_directories(${LIB_NAME} PUBLIC ${CUDA_LIBRARY_DIR})
 message(STATUS "Depending on: ${DEPEND_LIBRARIES}")
 target_link_libraries(${LIB_NAME} PUBLIC ${DEPENDENCY_LIBRARIES} ${STATIC_DEPENDENCY_LIBS_OTHER} ${CUDA_LIBRARIES})
 	
+# set CUDA architecture
+set_target_properties(${LIB_NAME} PROPERTIES CUDA_ARCHITECTURES "35;50;72")	
+	
 # precompiled headers
 if(USE_PRECOMPILED_HEADERS)
 	target_precompile_headers(${LIB_NAME} PRIVATE ${HEADER_FILES})
@@ -86,4 +93,4 @@ ENDIF()
 
 
 # Installation
-include(cmake/lib_install.cmake)
+include(lib_install)

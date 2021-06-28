@@ -13,23 +13,22 @@ if(NOT CUDA_CONFIGURED)
 	# enable CUDA language
 	enable_language(CUDA)
 		
-	set(CMAKE_CUDA_GENERAL_FLAGS ${CMAKE_CUDA_FLAGS} --device-link)# --std=c++17)
+	set(CMAKE_CUDA_GENERAL_FLAGS ${CMAKE_CUDA_FLAGS} --device-link)
 	
 	if(USE_CUDA_FAST_MATH)
 		set(CMAKE_CUDA_GENERAL_FLAGS ${CMAKE_CUDA_GENERAL_FLAGS} -use_fast_math)
 	endif()
 	
 	# various language options
-	#set(CMAKE_CUDA_GENERAL_FLAGS ${CMAKE_CUDA_GENERAL_FLAGS} -Xcudafe 
-	#														 --diag_suppress=extra_semicolon 
-	#														 --diag_suppress=exception_spec_override_incompat
-	#														 --diag_suppress=boolean_controlling_expr_is_constant
-	#														 --diag_suppress=unsigned_compare_with_zero
-	#														--diag_suppress=generated_exception_spec_override_incompat )
+	#set(CMAKE_CUDA_GENERAL_FLAGS ${CMAKE_CUDA_GENERAL_FLAGS} -Xcudafe "--diag_suppress=extra_semicolon" 
+	#														 -Xcudafe "--diag_suppress=exception_spec_override_incompat"
+	#														 -Xcudafe "--diag_suppress=boolean_controlling_expr_is_constant"
+	#														 -Xcudafe "--diag_suppress=unsigned_compare_with_zero"
+	#														 -Xcudafe "--diag_suppress=generated_exception_spec_override_incompat" )
 	
 	set(CMAKE_CUDA_FLAGS_STATIC ${CMAKE_CUDA_GENERAL_FLAGS} -cudart static)
 	set(CMAKE_CUDA_FLAGS_SHARED ${CMAKE_CUDA_GENERAL_FLAGS} -cudart shared)
-	
+	set(LIBRARY_USE_CUDA ON)
 		
 	# locate the CUDA toolkit
 	
@@ -79,5 +78,5 @@ if(NOT CUDA_CONFIGURED)
 	message(STATUS "CUDA_LIBRARIES_SHARED 	= ${CUDA_LIBRARIES_STATIC}")
 	message(STATUS "CMAKE_CUDA_FLAGS_STATIC = ${CMAKE_CUDA_FLAGS_STATIC}")
 	message(STATUS "CMAKE_CUDA_FLAGS_SHARED = ${CMAKE_CUDA_FLAGS_SHARED}")
-
+	message(STATUS "CMAKE_CXX_FLAGS_INIT    = ${CMAKE_CXX_FLAGS_INIT}")
 endif()

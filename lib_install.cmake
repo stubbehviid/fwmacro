@@ -25,8 +25,8 @@ realize_install_path(CMAKE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake")
 
 # generate paths relevant for the current library version (will be different for statis and shared lib versions
 set(MODULE_BIN_INSTALL_DIR 		"${BIN_INSTALL_DIR}")
-set(MODULE_LIB_INSTALL_DIR     	"${LIB_INSTALL_DIR}/${CMAKE_PROJECT_NAME}")
-set(MODULE_INCLUDE_INSTALL_DIR 	"${INCLUDE_INSTALL_DIR}/${CMAKE_PROJECT_NAME}")
+set(MODULE_LIB_INSTALL_DIR     	"${LIB_INSTALL_DIR}/${LIB_CORE_NAME}")
+set(MODULE_INCLUDE_INSTALL_DIR 	"${INCLUDE_INSTALL_DIR}/${LIB_CORE_NAME}")
 set(MODULE_CMAKE_INSTALL_DIR 	"${CMAKE_INSTALL_DIR}/${LIB_NAME}")
 
 message(STATUS "BIN_INSTALL_DIR = ${MODULE_BIN_INSTALL_DIR}")
@@ -72,7 +72,10 @@ if("${DEPENDENCY_INCLUDE_DIRS}" STREQUAL "")
 endif()
 
 # generate config file
-configure_package_config_file(cmake/libConfig.cmake.in ${PROJECT_BINARY_DIR}/${CONFIG_FILE}	INSTALL_DESTINATION ${MODULE_CMAKE_INSTALL_DIR}
+find_file(LIB_CONFIG_IN libConfig.cmake.in PATHS ${CMAKE_CURRENT_SOURCE_PATH} ${CMAKE_MODULE_PATH})
+message(STATUS "LIB_CONFIG_IN = ${LIB_CONFIG_IN}")
+
+configure_package_config_file(${LIB_CONFIG_IN} ${PROJECT_BINARY_DIR}/${CONFIG_FILE}	INSTALL_DESTINATION ${MODULE_CMAKE_INSTALL_DIR}
 	                          PATH_VARS MODULE_INCLUDE_INSTALL_DIR 
 										DEPENDENCY_INCLUDE_DIRS)
 

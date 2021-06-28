@@ -40,6 +40,12 @@ inline std::string version()
 #define USE_@LIB_CORENAME_UPPER@_AVX512
 #endif
 
+
+#cmakedefine LIBRARY_USE_CUDA
+#ifdef LIBRARY_USE_CUDA
+	#define USE_@LIB_CORENAME_UPPER@_USE_CUDA
+#endif
+
 };
 // end namespace
 

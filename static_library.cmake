@@ -14,7 +14,8 @@
 #	ADDITIONAL_SOURCE_INCLUDE_DIRS	- Additional list of include dirs needed for the project internal)
 
 #define library name
-set(LIB_NAME ${CMAKE_PROJECT_NAME}_static)
+set(LIB_CORE_NAME ${CMAKE_PROJECT_NAME})
+set(LIB_NAME ${LIB_CORE_NAME}_static)
 message(STATUS "-------------------------------------------")
 message(STATUS "Generating ${LIB_NAME} static library")
 message(STATUS "-------------------------------------------")
@@ -22,6 +23,10 @@ message(STATUS "-------------------------------------------")
 # generate the library core name as upper case string
 string(TOUPPER ${CMAKE_PROJECT_NAME} LIB_CORENAME_UPPER)
 string(TOUPPER ${LIB_NAME} LIB_NAME_UPPER)
+
+# Handle configuration
+find_file(H_CONFIG_IN config.h.in PATHS ${CMAKE_CURRENT_SOURCE_PATH} ${CMAKE_MODULE_PATH})
+configure_file ("${H_CONFIG_IN}" "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}_config.h" )
 
 # find dependency packages
 SET(DEPENDENCY_INCLUDE_DIRS "" ${INCLUDE_DEPENDENCY_DIRS})
@@ -73,4 +78,4 @@ ENDIF()
 
 
 # Installation
-include(cmake/lib_install.cmake)
+include(lib_install)
