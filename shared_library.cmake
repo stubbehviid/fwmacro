@@ -23,9 +23,12 @@ message(STATUS "-------------------------------------------")
 # generate the library core name as upper case string
 string(TOUPPER ${CMAKE_PROJECT_NAME} LIB_CORENAME_UPPER)
 string(TOUPPER ${LIB_NAME} LIB_NAME_UPPER)
-
 # Handle configuration
-find_file(H_CONFIG_IN config.h.in PATHS ${CMAKE_CURRENT_SOURCE_PATH} ${CMAKE_MODULE_PATH})
+foreach(X IN LISTS CMAKE_CURRENT_SOURCE_PATH CMAKE_MODULE_PATH)
+	if("${H_CONFIG_IN}" STREQUAL "H_CONFIG_IN-NOTFOUND" OR "${H_CONFIG_IN}" STREQUAL "")
+		find_file(H_CONFIG_IN config.h.in PATHS ${X})
+	endif()
+endforeach()
 configure_file ("${H_CONFIG_IN}" "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}_config.h" )
 
 # handle symbol export under windows
