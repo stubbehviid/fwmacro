@@ -56,7 +56,7 @@ add_library(${LIB_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
 target_include_directories(${LIB_NAME} PUBLIC  ${DEPENDENCY_INCLUDE_DIRS})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_SOURCE_DIR})
 target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})
-if(NOT "${ADDITIONAL_SOURCE_INCLUDE_DIRS}" STREQUAL "")
+if(EXISTS ADDITIONAL_SOURCE_INCLUDE_DIRS)
 	target_include_directories(${LIB_NAME} PRIVATE  ${ADDITIONAL_SOURCE_INCLUDE_DIRS})
 endif()
 	
@@ -69,7 +69,7 @@ if(USE_PRECOMPILED_HEADERS)
 endif()
 	
 # compile options
-target_compile_features(${LIB_NAME} PUBLIC cxx_std_17)
+target_compile_features(${LIB_NAME} PUBLIC ${COMPILER_STANDARD})
 set_target_properties(${LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 	
 # set target properties

@@ -8,6 +8,7 @@ if(NOT CUDA_CONFIGURED)
 
 	# activate seperable compilation (must be set before enable_language)
 	set(CUDA_SEPARABLE_COMPILATION ON)
+	set(CUDA_STANDARD 14)
 	find_package(CUDA QUIET REQUIRED)
 		
 	# enable CUDA language

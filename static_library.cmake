@@ -65,7 +65,7 @@ if(USE_PRECOMPILED_HEADERS)
 endif()
 	
 # compile options
-target_compile_features(${LIB_NAME} PUBLIC cxx_std_17)
+target_compile_features(${LIB_NAME} PUBLIC ${COMPILER_STANDARD})
 set_target_properties(${LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 	
 # set target properties
