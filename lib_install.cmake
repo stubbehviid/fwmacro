@@ -18,6 +18,35 @@ macro(realize_install_path _name _def)
   endif()
 endmacro()
 
+# macro for installing files maintaining relative directory stricture Trim the first folder of the destination path 
+# so if include/dir1/dir2/file.h is input the destination will be dir1/dir2)
+macro(install_retain_dir_exclude_include)
+    set(options "")
+    set(oneValueArgs "DESTINATION")
+    set(multiValueArgs "FILES")
+    cmake_parse_arguments(CAS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )	
+
+    foreach(FILE ${CAS_FILES})       	
+		# set default sub path
+		set(SFILE ${FILE})
+	
+		# split path into list
+		string(REGEX REPLACE "[/\]" ";" PATH_LIST ${FILE})	# turn path into a list
+		
+		# check if first element in path list is "include" if so remove the node
+		list(GET PATH_LIST 0 FIRST_FOLDER)
+		
+		if("${FIRST_FOLDER}" STREQUAL "include")
+			list(POP_FRONT PATH_LIST PATH_LIST)					# remove first entry in list if number of elements in path > 1 (we do not want to delete the filename itself)
+			list(JOIN PATH_LIST "/" SFILE)						# list back to path
+		endif()
+		get_filename_component(DIR ${SFILE} DIRECTORY)		# extract the relative sub folder to use as destination
+		#message(STATUS "FILE:${FILE}   ->   DIR=${CAS_DESTINATION}/${DIR}")
+        install(FILES ${FILE} DESTINATION ${CAS_DESTINATION}/${DIR})	# install the file
+    endforeach()
+endmacro()
+
+
 realize_install_path(BIN_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}")
 realize_install_path(LIB_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}")
 realize_install_path(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_INCLUDEDIR}")
@@ -48,7 +77,7 @@ IF(MSVC)
 ENDIF()	
 
 # include files
-install (FILES ${HEADER_FILES} DESTINATION ${MODULE_INCLUDE_INSTALL_DIR})
+install_retain_dir_exclude_include(DESTINATION ${MODULE_INCLUDE_INSTALL_DIR} FILES ${HEADER_FILES})
 install (FILES ${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}_config.h DESTINATION ${MODULE_INCLUDE_INSTALL_DIR})
 
 # handle configuration
