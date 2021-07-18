@@ -48,15 +48,18 @@ else()
 	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
 endif()
 
+# move relevant dependency list to active
+set(ACTIVE_DEPENDENCY_LIBS ${SHARED_DEPENDENCY_LIBS})
+
 # find dependency packages
 SET(DEPENDENCY_INCLUDE_DIRS "" ${INCLUDE_DEPENDENCY_DIRS})
 SET(DEPENDENCY_LIBRARIES)
-foreach(pck IN LISTS SHARED_DEPENDENCY_LIBS)
+foreach(pck IN LISTS ACTIVE_DEPENDENCY_LIBS)
 	message(STATUS "Locating dependency package: ${pck}")
 	find_package(${pck} REQUIRED)
 	
-	SET(DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS} ${${pck}_INCLUDE_DIRS})
-	SET(DEPENDENCY_LIBRARIES ${DEPENDENCY_LIBRARIES} ${${pck}_LIBRARIES})
+	list(APPEND DEPENDENCY_INCLUDE_DIRS ${${pck}_INCLUDE_DIRS})
+	list(APPEND DEPENDENCY_LIBRARIES    ${${pck}_LIBRARIES})
 endforeach()
 
 # create the librare
