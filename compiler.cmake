@@ -13,6 +13,12 @@ set_property(CACHE SIMD_MODE PROPERTY STRINGS SIMD_NONE SIMD_SSE SIMD_SSE2 SIMD_
 set(COMPILER_STANDARD "cxx_std_17" CACHE STRING "C++ language standard")
 set_property(CACHE COMPILER_STANDARD PROPERTY STRINGS cxx_std_98 cxx_std_11 cxx_std_14 cxx_std_17 cxx_std_20 cxx_std_23)
 
+if(MSVC)
+	OPTION (USE_MSCV_EXPERIMENTAL_OPENMP "use the MSVC --openmp:experimental clause" ON)
+else()
+
+endif()
+
 # -------------------
 # Configure SIMD mode
 # -------------------
@@ -82,7 +88,7 @@ elseif(USE_AVX2)
 	if(MSVC)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
 	else()
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mfma")
 	endif()
 elseif(USE_AVX512)
 	message(STATUS "Building with AVX512 SIMD code generation")
@@ -112,8 +118,14 @@ endif()
 find_package(OpenMP)
 if(OPENMP_FOUND)
 	message(STATUS "Building with OpenMP support")
+	
+	if(USE_MSCV_EXPERIMENTAL_OPENMP)
+		set(OpenMP_C_FLAGS "-openmp:experimental")
+		set(OpenMP_CXX_FLAGS "-openmp:experimental")
+	endif()
+	
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_C_FLAGS}")
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-	link_libraries(${OpenMP_CXX_LIBRARIES})
+	link_libraries(${OpenMP_CXX_LIBRARIES})	
 endif()
