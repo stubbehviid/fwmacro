@@ -106,7 +106,7 @@ endif()
 IF(MSVC)
 	# MSVC WIN32 specific settings
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4244 /wd4267 /wd4018 /nologo /W1 /EHsc /MP")
-	add_definitions( "-DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS " )
+	add_definitions( "-D_CRT_SECURE_NO_WARNINGS " )
 else()
 	# clan + g++ specific settings
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wno-ignored-attributes")
