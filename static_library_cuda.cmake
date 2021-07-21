@@ -12,89 +12,16 @@
 # The following input variable can be set
 #	STATIC_DEPENDENCY_LIBS_OTHER	- list of library files not part of the cmake package system
 #	ADDITIONAL_SOURCE_INCLUDE_DIRS	- Additional list of include dirs needed for the project internal)
+include(macros)
 
-
-#define library name
-set(LIB_CORE_NAME ${CMAKE_PROJECT_NAME}_cuda)
-set(LIB_NAME ${LIB_CORE_NAME}_static)
-message(STATUS "-------------------------------------------")
-message(STATUS "Generating ${LIB_NAME} static cuda library")
-message(STATUS "-------------------------------------------")
-
-# configure CUDA
-include(cuda)
-
-# set active CUDA flags
-set(CMAKE_CUDA_FLAGS ${CMAKE_CUDA_FLAGS_STATIC})
-set(CUDA_LIBRARIES ${CUDA_LIBRARIES_STATIC})
-
-# generate the library core name as upper case string
-string(TOUPPER ${CMAKE_PROJECT_NAME} LIB_CORENAME_UPPER)
-string(TOUPPER ${LIB_NAME} LIB_NAME_UPPER)
-
-# Handle configuration
-foreach(X IN LISTS CMAKE_CURRENT_SOURCE_PATH CMAKE_MODULE_PATH)
-	if("${H_CONFIG_IN}" STREQUAL "H_CONFIG_IN-NOTFOUND" OR "${H_CONFIG_IN}" STREQUAL "")
-		find_file(H_CONFIG_IN config.h.in PATHS ${X})
-	endif()
-endforeach()
-configure_file ("${H_CONFIG_IN}" "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}_config.h" )
-
-# move relevant dependency list to active
-set(ACTIVE_DEPENDENCY_LIBS ${STATIC_DEPENDENCY_LIBS})
-
-# find dependency packages
-SET(DEPENDENCY_INCLUDE_DIRS "" ${INCLUDE_DEPENDENCY_DIRS})
-SET(DEPENDENCY_LIBRARIES)
-foreach(pck IN LISTS ACTIVE_DEPENDENCY_LIBS)
-	message(STATUS "Locating dependency package: ${pck}")
-	find_package(${pck} REQUIRED)
-	list(APPEND DEPENDENCY_INCLUDE_DIRS ${${pck}_INCLUDE_DIRS})
-	list(APPEND DEPENDENCY_LIBRARIES    ${${pck}_LIBRARIES})
-endforeach()
-
-# create the library
-add_library(${LIB_NAME} STATIC ${SOURCE_FILES} ${HEADER_FILES} ${CUDA_SOURCE_FILES} ${CUDA_HEADER_FILES})
-	
-# set include and library dirs
-target_include_directories(${LIB_NAME} PUBLIC  ${DEPENDENCY_INCLUDE_DIRS})
-target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_SOURCE_DIR})
-target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})
-target_include_directories(${LIB_NAME} PUBLIC  ${CUDA_INCLUDE_DIRS})
-if(NOT "${ADDITIONAL_SOURCE_INCLUDE_DIRS}" STREQUAL "")
-	target_include_directories(${LIB_NAME} PRIVATE  ${ADDITIONAL_SOURCE_INCLUDE_DIRS})
-endif()
-	
-target_link_directories(${LIB_NAME} PUBLIC ${CUDA_LIBRARY_DIR})
-	
-# set library dependencies	
-message(STATUS "Depending on: ${DEPEND_LIBRARIES}")
-target_link_libraries(${LIB_NAME} PUBLIC ${DEPENDENCY_LIBRARIES} ${STATIC_DEPENDENCY_LIBS_OTHER} ${CUDA_LIBRARIES})
-	
-# set CUDA architecture
-set_target_properties(${LIB_NAME} PROPERTIES CUDA_ARCHITECTURES "35;50;72")	
-	
-# precompiled headers
-if(USE_PRECOMPILED_HEADERS)
-	target_precompile_headers(${LIB_NAME} PRIVATE ${HEADER_FILES})
-endif()
-	
-# compile options
-target_compile_features(${LIB_NAME} PUBLIC ${COMPILER_STANDARD})
-set_target_properties(${LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
-	
-# set target properties
-set_target_properties(${LIB_NAME} PROPERTIES VERSION "${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}.${CMAKE_PROJECT_VERSION_PATCH}")
-
-# append d to debug libraries
-set_property(TARGET ${LIB_NAME} PROPERTY DEBUG_POSTFIX d)
-
-# If using MSVC the set the debug database filename
-IF(MSVC)
-	set_property(TARGET ${LIB_NAME} PROPERTY COMPILE_PDB_NAME_DEBUG "${LIB_NAME}d")
-	set_property(TARGET ${LIB_NAME} PROPERTY COMPILE_PDB_NAME_RELWITHDEBINFO "${LIB_NAME}")
-ENDIF()
-
-
-# Installation
-include(lib_install)
+# make library
+make_library(NAME ${CMAKE_PROJECT_NAME}_cuda TYPE STATIC SOURCE_FILES ${SOURCE_FILES} HEADER_FILES ${HEADER_FILES} 
+             DEPENDENCY_PACKAGES ${STATIC_DEPENDENCY_LIBS} DEPENDENCY_LIBS ${STATIC_DEPENDENCY_LIBS_OTHER}
+			 DEPENDENCY_INCLUDE_DIRS ${INCLUDE_DEPENDENCY_DIRS} INTERNAL_INCLUDE_DIRS ${ADDITIONAL_SOURCE_INCLUDE_DIRS}
+			 CUDA CUDA_SOURCE_FILES ${CUDA_SOURCE_FILES} CUDA_HEADER_FILES ${CUDA_HEADER_FILES}
+			 INSTALL
+			 BIN_INSTALL_DIR ${BIN_INSTALL_DIR}
+			 LIB_INSTALL_DIR ${LIB_INSTALL_DIR}
+			 INCLUDE_INSTALL_DIR ${INCLUDE_INSTALL_DIR}
+			 CMAKE_INSTALL_DIR ${CMAKE_INSTALL_DIR}			 
+			 )
