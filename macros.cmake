@@ -41,6 +41,9 @@ macro(realize_package_dependencies)
 	
 	list(REMOVE_DUPLICATES ${P_OUTPUT_NAME}_INCLUDE_DIRS)
 	list(REMOVE_DUPLICATES ${P_OUTPUT_NAME}_LIBRARIES)	
+	
+	message(STATUS "${P_OUTPUT_NAME}_INCLUDE_DIRS = ${${P_OUTPUT_NAME}_INCLUDE_DIRS}")
+	message(STATUS "${P_OUTPUT_NAME}_LIBRARIES = ${${P_OUTPUT_NAME}_LIBRARIES}")
 endmacro()
 
 # macro: realize_install_path
@@ -321,7 +324,10 @@ macro(make_library)
 	
 	endif()
 
-
+	# handle project config file
+	find_file(H_CONFIG_IN config.h.in PATHS ${CMAKE_CURRENT_SOURCE_PATH} ${CMAKE_MODULE_PATH})
+	message(STATUS "H_CONFIG_IN = ${H_CONFIG_IN}")
+	configure_file(${H_CONFIG_IN} ${PROJECT_BINARY_DIR}/${LIB_CORE_NAME}_config.h)
 
 	# create the library
 	if(STATIC_LIB)
