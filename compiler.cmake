@@ -42,7 +42,7 @@ set(SIMD_MODE "SIMD_AVX2" CACHE STRING "SIMD mode to be used by compiler")
 set_property(CACHE SIMD_MODE PROPERTY STRINGS SIMD_NONE SIMD_SSE SIMD_SSE2 SIMD_AVX SIMD_AVX2 SIMD_AVX512)
 
 # C++ standard
-set(CXX_COMPILER_STANDARD "cxx_std_17" CACHE STRING "C++ language standard")
+set(CXX_COMPILER_STANDARD "cxx_std_20" CACHE STRING "C++ language standard")
 set_property(CACHE CXX_COMPILER_STANDARD PROPERTY STRINGS cxx_std_98 cxx_std_11 cxx_std_14 cxx_std_17 cxx_std_20 cxx_std_23)
 
 # Copmpiler specific options
