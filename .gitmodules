@@ -1,0 +1,3 @@
+[submodule "cmake"]
+	path = cmake
+	url = hviid@faurschou-hviid.de:/mnt/git-repos/cmake/libtools
