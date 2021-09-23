@@ -62,10 +62,16 @@ if(COMPILER_FAMILY STREQUAL "CLANG")
 	
 	OPTION( CLANG_SANITIZE_THREAD_SAFETY "Use -Wthread-safety -fsanitize=thread" OFF)
 	OPTION( CLANG_SANITIZE_ADDRESS "Use -fsanitize=address" OFF)
-	OPTION( CLANG_SANITIZE_MEMORY "Use -fsanitize=memory" ON)
-	OPTION( CLANG_SANITIZE_UNDEFINED "Use -fsanitize=undefined" ON)
+	OPTION( CLANG_SANITIZE_MEMORY "Use -fsanitize=memory" OFF)
+	OPTION( CLANG_SANITIZE_UNDEFINED "Use -fsanitize=undefined" OFF)
 	OPTION( CLANG_SANITIZE_LEAK "Use -fsanitize=leak" OFF)
 	OPTION( CLANG_SANITIZE_SAFE_STACK "Use -fsanitize=safe-stack" OFF)	
+	
+	if(CLANG_STATIC_ANALYSIS)
+		set(CLANG_STATIC_ANALYSIS_DIR "" CACHE STRING "Where to put the clang statioc analysis output files")
+	endif()
+	
+	
 endif()
 
 # -------------------
@@ -201,7 +207,10 @@ else()	# posix compilers
 		string(APPEND CMAKE_CXX_FLAGS " -march=${CLANG_ARCHITECTURE}")		
 		
 		if(CLANG_STATIC_ANALYSIS)
-			string(APPEND CMAKE_CXX_FLAGS " --analyze")		
+			string(APPEND CMAKE_CXX_FLAGS " --analyze -Xanalyzer -analyzer-output=text")
+			if(NOT "${CLANG_STATIC_ANALYSIS_DIR}" STREQUAL "")
+			string(APPEND CMAKE_CXX_FLAGS " -o ${CLANG_STATIC_ANALYSIS_DIR}")
+			endif()
 		endif()
 		
 		if(CLANG_SANITIZE_THREAD_SAFETY)
