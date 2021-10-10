@@ -1,3 +1,25 @@
+
+# macro: fwmessage
+#	verbosity macro for std cmake message alllowing control of verbosity
+macro(fwmessage _type _text)
+
+	if(FWMACROS_VERBOSE)
+		message(${_type} "${_text}")
+	endif()	
+endmacro()
+
+# load standard path names (std cmake module)
+include(GNUInstallDirs)
+
+# load std lib options
+include(fwlib_options)
+
+# include compiler options
+include(fwcompiler)
+
+
+
+
 # macro: realize_package_dependencies
 #		find and activate a list of dependency packages (libraries with assicuate cmake config)
 #
@@ -42,8 +64,8 @@ macro(realize_package_dependencies)
 	list(REMOVE_DUPLICATES ${P_OUTPUT_NAME}_INCLUDE_DIRS)
 	list(REMOVE_DUPLICATES ${P_OUTPUT_NAME}_LIBRARIES)	
 	
-	message(STATUS "${P_OUTPUT_NAME}_INCLUDE_DIRS = ${${P_OUTPUT_NAME}_INCLUDE_DIRS}")
-	message(STATUS "${P_OUTPUT_NAME}_LIBRARIES = ${${P_OUTPUT_NAME}_LIBRARIES}")
+	fwmessage(STATUS "${P_OUTPUT_NAME}_INCLUDE_DIRS = ${${P_OUTPUT_NAME}_INCLUDE_DIRS}")
+	fwmessage(STATUS "${P_OUTPUT_NAME}_LIBRARIES = ${${P_OUTPUT_NAME}_LIBRARIES}")
 endmacro()
 
 # macro: realize_install_path
@@ -129,11 +151,10 @@ macro(install_library)
 		set(LIB_NAME ${P_NAME})
 	endif()	
 	
-	message(STATUS "LIB_CORE_NAME = ${LIB_CORE_NAME}")
-	message(STATUS "LIB_NAME      = ${LIB_NAME}")
+	fwmessage(STATUS "LIB_CORE_NAME = ${LIB_CORE_NAME}")
+	fwmessage(STATUS "LIB_NAME      = ${LIB_NAME}")
 	
-	# load standard path names (std cmake module)
-	include(GNUInstallDirs)
+	
 	
 	# realize the apsolute path of the various installation targets
 	realize_install_path(P_BIN_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}")
@@ -148,11 +169,11 @@ macro(install_library)
 	set(MODULE_CMAKE_INSTALL_DIR 	"${P_CMAKE_INSTALL_DIR}/${LIB_NAME}")
 	set(DEPENDENCY_INCLUDE_DIRS 	 ${P_DEPENDENCY_INCLUDE_DIRS})	
 
-	message(STATUS "BIN_INSTALL_DIR         = ${MODULE_BIN_INSTALL_DIR}")
-	message(STATUS "LIB_INSTALL_DIR         = ${MODULE_LIB_INSTALL_DIR}")
-	message(STATUS "INCLUDE_INSTALL_DIR     = ${MODULE_INCLUDE_INSTALL_DIR}")
-	message(STATUS "CMAKE_INSTALL_DIR       = ${MODULE_CMAKE_INSTALL_DIR}")
-	message(STATUS "DEPENDENCY_INCLUDE_DIRS = ${DEPENDENCY_INCLUDE_DIRS}")
+	fwmessage(STATUS "BIN_INSTALL_DIR         = ${MODULE_BIN_INSTALL_DIR}")
+	fwmessage(STATUS "LIB_INSTALL_DIR         = ${MODULE_LIB_INSTALL_DIR}")
+	fwmessage(STATUS "INCLUDE_INSTALL_DIR     = ${MODULE_INCLUDE_INSTALL_DIR}")
+	fwmessage(STATUS "CMAKE_INSTALL_DIR       = ${MODULE_CMAKE_INSTALL_DIR}")
+	fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS = ${DEPENDENCY_INCLUDE_DIRS}")
 	
 	# Installation
 	install (TARGETS ${LIB_NAME}
@@ -179,9 +200,9 @@ macro(install_library)
 	set(VERSION_FILE "${LIB_NAME}ConfigVersion.cmake")
 	set(TARGETS_FILE "${LIB_NAME}Targets.cmake")
 	
-	message(STATUS "generating ${CONFIG_FILE}")
-	message(STATUS "generating ${VERSION_FILE}")
-	message(STATUS "generating ${TARGETS_FILE}")
+	fwmessage(STATUS "generating ${CONFIG_FILE}")
+	fwmessage(STATUS "generating ${VERSION_FILE}")
+	fwmessage(STATUS "generating ${TARGETS_FILE}")
 
 	# Configuration handling
 	include(CMakePackageConfigHelpers)
@@ -195,7 +216,7 @@ macro(install_library)
 
 	# locate a template for the config file (will use libConfig.cmake.in in projetc root if existing then fall back to the global default in cmake 
 	find_file(LIB_CONFIG_IN libConfig.cmake.in PATHS ${CMAKE_CURRENT_SOURCE_PATH} ${CMAKE_MODULE_PATH})
-	message(STATUS "LIB_CONFIG_IN = ${LIB_CONFIG_IN}")
+	fwmessage(STATUS "LIB_CONFIG_IN = ${LIB_CONFIG_IN}")
 
 	# make sure that DEPENDENCY_INCLUDE_DIRS exists
 	if("${DEPENDENCY_INCLUDE_DIRS}" STREQUAL "")
@@ -225,15 +246,16 @@ endmacro()
 # macro: make_library
 #		create a library project including cmake config files
 #
-#	NAME <library name>
-# 	TYPE <either "STATIC' or 'SHARED'
-#			if "STATIC is selected the output libraru will be renamed to <NAME>_static
-#	SOURCE_FILES 			<list of c++ source files>
-#	HEADER_FILES			<list of c++ header files>
-#	DEPENDENCY_PACKAGES		<list of dependency packages (libraries with cmake config)>
-#	DEPENDENCY_LIBS			<list of library dependencies (librarus without cmake config)>
-#	DEPENDENCY_INCLUDE_DIRS	<list of filters containg includefiles needed by the library>
-#	INTERNAL_INCLUDE_DIRS	<list of private incluyde directories (include files only needed for the compilation of trhe lib itself)>
+#	NAME <library name>						Name of the library to be generated
+# 	TYPE <type>								Either "STATIC' or 'SHARED'
+#											if "STATIC is selected the output libraru will be renamed to <NAME>_static
+#	CXX_SOURCE_FILES 						list of c++ source files
+#	CXX_HEADER_FILES						list of c++ header files
+#	DEPENDENCY_PACKAGES						list of dependency packages (libraries with cmake config)
+#	DEPENDENCY_LIBS							list of library dependencies (librarus without cmake config)
+#	DEPENDENCY_INCLUDE_DIRS					list of filters containg includefiles needed by the library
+#
+#	PRIVATE_INCLUDE_DIRS					list of private incluyde directories (include files only needed for the compilation of trhe lib itself)
 #
 #	Optional language support
 #		CUDA					if set CUDA support will be enabled
@@ -252,12 +274,12 @@ endmacro()
 macro(make_library)
     set(options "INSTALL" "CUDA")
     set(oneValueArgs NAME TYPE)
-    set(multiValueArgs SOURCE_FILES 
-					   HEADER_FILES 
+    set(multiValueArgs CXX_SOURCE_FILES 
+					   CXX_HEADER_FILES 
 					   DEPENDENCY_PACKAGES 
 					   DEPENDENCY_LIBS 
 					   DEPENDENCY_INCLUDE_DIRS
-					   INTERNAL_INCLUDE_DIRS
+					   PRIVATE_INCLUDE_DIRS
 					   CUDA_SOURCE_FILES
 					   CUDA_HEADER_FILES
 					   BIN_INSTALL_DIR
@@ -281,32 +303,34 @@ macro(make_library)
 		set(LIB_NAME ${LIB_CORE_NAME})
 	endif()
 	
-	message(STATUS "------------------------------------------------------")
-	message(STATUS "Generating ${LIB_NAME} library (core:${LIB_CORE_NAME})")	
-	message(STATUS "------------------------------------------------------")
-
-	# generate the library core name as upper case string
-	string(TOUPPER ${CMAKE_PROJECT_NAME} LIB_CORENAME_UPPER)
-	string(TOUPPER ${LIB_NAME} LIB_NAME_UPPER)
-
-	set(DEPENDENCY_PACKAGES ${P_DEPENDENCY_PACKAGES})
-	set(DEPENDENCY_LIBS ${P_DEPENDENCY_LIBS})
-	set(DEPENDENCY_INCLUDE_DIRS ${P_DEPENDENCY_INCLUDE_DIRS})
-	set(INTERNAL_INCLUDE_DIRS ${P_INTERNAL_INCLUDE_DIRS})
+	# generate uppercase version of lib names
+	string(TOUPPER ${LIB_CORE_NAME} LIB_CORENAME_UPPER)
+	string(TOUPPER ${LIB_NAME} 		LIB_NAME_UPPER)
+	
+	# tell what is being generated
+	fwmessage(STATUS "------------------------------------------------------")
+	fwmessage(STATUS "Generating ${LIB_NAME} library (core:${LIB_CORE_NAME})")	
+	fwmessage(STATUS "------------------------------------------------------")
+	
+	# transfer input to variable understood by rest of the sub macros
+	set(DEPENDENCY_PACKAGES 		${P_DEPENDENCY_PACKAGES})
+	set(DEPENDENCY_LIBS 			${P_DEPENDENCY_LIBS})
+	set(DEPENDENCY_INCLUDE_DIRS 	${P_DEPENDENCY_INCLUDE_DIRS})
+	set(PRIVATE_INCLUDE_DIRS 		${P_PRIVATE_INCLUDE_DIRS})
 
 	# locate dependencies
-	realize_package_dependencies(OUTPUT_NAME PACKAGE PACKAGES ${DEPENDENCY_PACKAGES})
+	realize_package_dependencies(OUTPUT_NAME PACKAGE PACKAGES ${P_DEPENDENCY_PACKAGES})
 	
-	message(STATUS "INLUDE_DIRS 	        = ${PACKAGE_INCLUDE_DIRS}")
-	message(STATUS "LIBRARIES   	        = ${PACKAGE_LIBRARIES}")
-	message(STATUS "DEPENDENCY_PACKAGES     = ${DEPENDENCY_PACKAGES}")
-	message(STATUS "DEPENDENCY_LIBS         = ${DEPENDENCY_LIBS}")
-	message(STATUS "DEPENDENCY_INCLUDE_DIRS = ${DEPENDENCY_INCLUDE_DIRS}")
-	message(STATUS "INTERNAL_INCLUDE_DIRS   = ${INTERNAL_INCLUDE_DIRS}")
+	fwmessage(STATUS "INLUDE_DIRS 	        = ${PACKAGE_INCLUDE_DIRS}")
+	fwmessage(STATUS "LIBRARIES   	        = ${PACKAGE_LIBRARIES}")
+	fwmessage(STATUS "DEPENDENCY_PACKAGES     = ${DEPENDENCY_PACKAGES}")
+	fwmessage(STATUS "DEPENDENCY_LIBS         = ${DEPENDENCY_LIBS}")
+	fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS = ${DEPENDENCY_INCLUDE_DIRS}")
+	fwmessage(STATUS "PRIVATE_INCLUDE_DIRS    = ${PRIVATE_INCLUDE_DIRS}")
 
 	# define project files
-	list(APPEND PROJECT_COURCE_FILES ${P_SOURCE_FILES})
-	list(APPEND PROJECT_COURCE_FILES ${P_HEADER_FILES})
+	list(APPEND PROJECT_COURCE_FILES ${P_CXX_SOURCE_FILES})
+	list(APPEND PROJECT_COURCE_FILES ${P_CXX_HEADER_FILES})
 
 	#add cuda sullrt if requested
 	if(P_CUDA)
@@ -329,7 +353,7 @@ macro(make_library)
 
 	# handle project config file
 	find_file(H_CONFIG_IN config.h.in PATHS ${CMAKE_CURRENT_SOURCE_PATH} ${CMAKE_MODULE_PATH})
-	message(STATUS "H_CONFIG_IN = ${H_CONFIG_IN}")
+	fwmessage(STATUS "H_CONFIG_IN = ${H_CONFIG_IN}")
 	configure_file(${H_CONFIG_IN} ${PROJECT_BINARY_DIR}/${LIB_CORE_NAME}_config.h)
 
 	# create the library
@@ -344,9 +368,9 @@ macro(make_library)
 	target_include_directories(${LIB_NAME} PUBLIC  ${DEPENDENCY_INCLUDE_DIRS})		# include dirs needed by specific non packet libraries
 	target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_SOURCE_DIR})			# add project source as private
 	target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})			# add project binary as private
-	target_include_directories(${LIB_NAME} PRIVATE  ${INTERNAL_INCLUDE_DIRS})		# add additional internal include dirs (like ./include if the project include files are not found in the root)
+	target_include_directories(${LIB_NAME} PRIVATE  ${PRIVATE_INCLUDE_DIRS})		# add additional private include dirs (like ./include if the project include files are not found in the root)
 			
-	target_link_libraries(${LIB_NAME} PUBLIC ${PACKAGE_LIBRARIES} ${DEPENDENCY_LIBS})
+	target_link_libraries(${LIB_NAME} PUBLIC ${PACKAGE_LIBRARIES} ${DEPENDENCY_LIBS})	# link resolved packages and specific input list of libraries
 	
 	# precompiled headers
 	if(USE_PRECOMPILED_HEADERS)
@@ -366,7 +390,9 @@ macro(make_library)
 	# If using MSVC the set the debug database filename
 	IF(MSVC)
 		set_property(TARGET ${LIB_NAME} PROPERTY COMPILE_PDB_NAME_DEBUG "${LIB_NAME}d")
-		set_property(TARGET ${LIB_NAME} PROPERTY COMPILE_PDB_NAME_RELWITHDEBINFO "${LIB_NAME}")
+		if(NOT STATIC_LIB)
+			set_property(TARGET ${LIB_NAME} PROPERTY COMPILE_PDB_NAME_RELWITHDEBINFO "${LIB_NAME}")		# MSVC does not generate pdb files for static librarues in RELWITHDEBINFO
+		endif()
 	ENDIF()
 
 	#handle installation
