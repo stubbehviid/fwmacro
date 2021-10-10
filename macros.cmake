@@ -164,7 +164,10 @@ macro(install_library)
 	# PDB files on windows
 	IF(MSVC)
 		install(FILES "${PROJECT_BINARY_DIR}/Debug/${LIB_NAME}d.pdb" 		 DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS Debug)
-		install(FILES "${PROJECT_BINARY_DIR}/RelWithDebInfo/${LIB_NAME}.pdb" DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS RelWithDebInfo)
+		if("${P_TYPE}" STREQUAL "SHARED")
+			# MSVC does not generated pdb files for RelWithDebInfo woth target being a static library
+			install(FILES "${PROJECT_BINARY_DIR}/RelWithDebInfo/${LIB_NAME}.pdb" DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS RelWithDebInfo)
+		endif()
 	ENDIF()	
 
 	# include files
