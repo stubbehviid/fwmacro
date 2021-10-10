@@ -312,21 +312,15 @@ macro(make_library)
 	fwmessage(STATUS "Generating ${LIB_NAME} library (core:${LIB_CORE_NAME})")	
 	fwmessage(STATUS "------------------------------------------------------")
 	
-	# transfer input to variable understood by rest of the sub macros
-	set(DEPENDENCY_PACKAGES 		${P_DEPENDENCY_PACKAGES})
-	set(DEPENDENCY_LIBS 			${P_DEPENDENCY_LIBS})
-	set(DEPENDENCY_INCLUDE_DIRS 	${P_DEPENDENCY_INCLUDE_DIRS})
-	set(PRIVATE_INCLUDE_DIRS 		${P_PRIVATE_INCLUDE_DIRS})
-
 	# locate dependencies
 	realize_package_dependencies(OUTPUT_NAME PACKAGE PACKAGES ${P_DEPENDENCY_PACKAGES})
 	
-	fwmessage(STATUS "INLUDE_DIRS 	        = ${PACKAGE_INCLUDE_DIRS}")
-	fwmessage(STATUS "LIBRARIES   	        = ${PACKAGE_LIBRARIES}")
-	fwmessage(STATUS "DEPENDENCY_PACKAGES     = ${DEPENDENCY_PACKAGES}")
-	fwmessage(STATUS "DEPENDENCY_LIBS         = ${DEPENDENCY_LIBS}")
-	fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS = ${DEPENDENCY_INCLUDE_DIRS}")
-	fwmessage(STATUS "PRIVATE_INCLUDE_DIRS    = ${PRIVATE_INCLUDE_DIRS}")
+	fwmessage(STATUS "PACKAGE_INCLUDE_DIRS 	  = ${PACKAGE_INCLUDE_DIRS}")
+	fwmessage(STATUS "PACKAGE_LIBRARIES   	  = ${PACKAGE_LIBRARIES}")
+	fwmessage(STATUS "DEPENDENCY_PACKAGES     = ${P_DEPENDENCY_PACKAGES}")
+	fwmessage(STATUS "DEPENDENCY_LIBS         = ${P_DEPENDENCY_LIBS}")
+	fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS = ${P_DEPENDENCY_INCLUDE_DIRS}")
+	fwmessage(STATUS "PRIVATE_INCLUDE_DIRS    = ${P_PRIVATE_INCLUDE_DIRS}")
 
 	# define project files
 	list(APPEND PROJECT_COURCE_FILES ${P_CXX_SOURCE_FILES})
@@ -364,13 +358,13 @@ macro(make_library)
 	endif()
 	
 	# set include and library dirs
-	target_include_directories(${LIB_NAME} PUBLIC  ${PACKAGE_INCLUDE_DIRS})			# include dirs needed for pagkages
-	target_include_directories(${LIB_NAME} PUBLIC  ${DEPENDENCY_INCLUDE_DIRS})		# include dirs needed by specific non packet libraries
+	target_include_directories(${LIB_NAME} PUBLIC  	${PACKAGE_INCLUDE_DIRS})		# include dirs needed for pagkages
+	target_include_directories(${LIB_NAME} PUBLIC  	${P_DEPENDENCY_INCLUDE_DIRS})	# include dirs needed by specific non packet libraries
 	target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_SOURCE_DIR})			# add project source as private
 	target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})			# add project binary as private
-	target_include_directories(${LIB_NAME} PRIVATE  ${PRIVATE_INCLUDE_DIRS})		# add additional private include dirs (like ./include if the project include files are not found in the root)
+	target_include_directories(${LIB_NAME} PRIVATE  ${P_PRIVATE_INCLUDE_DIRS})		# add additional private include dirs (like ./include if the project include files are not found in the root)
 			
-	target_link_libraries(${LIB_NAME} PUBLIC ${PACKAGE_LIBRARIES} ${DEPENDENCY_LIBS})	# link resolved packages and specific input list of libraries
+	target_link_libraries(${LIB_NAME} PUBLIC ${PACKAGE_LIBRARIES} ${P_DEPENDENCY_LIBS})	# link resolved packages and specific input list of libraries
 	
 	# precompiled headers
 	if(USE_PRECOMPILED_HEADERS)
