@@ -374,6 +374,9 @@ macro(make_library)
 	# compile options
 	target_compile_features(${LIB_NAME} PUBLIC ${CXX_COMPILER_STANDARD})
 	set_target_properties(${LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+	if(NOT STATIC_LIB)
+		set_target_properties(${LIB_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+	endif()
 	
 	# set target properties
 	set_target_properties(${LIB_NAME} PROPERTIES VERSION "${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}.${CMAKE_PROJECT_VERSION_PATCH}")
