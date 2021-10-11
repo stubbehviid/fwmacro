@@ -252,7 +252,7 @@ endmacro()
 #	CXX_SOURCE_FILES 						list of c++ source files
 #	CXX_HEADER_FILES						list of c++ header files
 #	DEPENDENCY_PACKAGES						list of dependency packages (libraries with cmake config)
-#	DEPENDENCY_LIBS							list of library dependencies (librarus without cmake config)
+#	DEPENDENCY_LIBRARIES							list of library dependencies (librarus without cmake config)
 #	DEPENDENCY_INCLUDE_DIRS					list of filters containg includefiles needed by the library
 #
 #	PRIVATE_INCLUDE_DIRS					list of private incluyde directories (include files only needed for the compilation of trhe lib itself)
@@ -277,7 +277,7 @@ macro(make_library)
     set(multiValueArgs CXX_SOURCE_FILES 
 					   CXX_HEADER_FILES 
 					   DEPENDENCY_PACKAGES 
-					   DEPENDENCY_LIBS 
+					   DEPENDENCY_LIBRARIES 
 					   DEPENDENCY_INCLUDE_DIRS
 					   PRIVATE_INCLUDE_DIRS
 					   CUDA_SOURCE_FILES
@@ -318,7 +318,7 @@ macro(make_library)
 	fwmessage(STATUS "PACKAGE_INCLUDE_DIRS 	  = ${PACKAGE_INCLUDE_DIRS}")
 	fwmessage(STATUS "PACKAGE_LIBRARIES   	  = ${PACKAGE_LIBRARIES}")
 	fwmessage(STATUS "DEPENDENCY_PACKAGES     = ${P_DEPENDENCY_PACKAGES}")
-	fwmessage(STATUS "DEPENDENCY_LIBS         = ${P_DEPENDENCY_LIBS}")
+	fwmessage(STATUS "DEPENDENCY_LIBRARIES    = ${P_DEPENDENCY_LIBRARIES}")
 	fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS = ${P_DEPENDENCY_INCLUDE_DIRS}")
 	fwmessage(STATUS "PRIVATE_INCLUDE_DIRS    = ${P_PRIVATE_INCLUDE_DIRS}")
 
@@ -364,7 +364,7 @@ macro(make_library)
 	target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})			# add project binary as private
 	target_include_directories(${LIB_NAME} PRIVATE  ${P_PRIVATE_INCLUDE_DIRS})		# add additional private include dirs (like ./include if the project include files are not found in the root)
 			
-	target_link_libraries(${LIB_NAME} PUBLIC ${PACKAGE_LIBRARIES} ${P_DEPENDENCY_LIBS})	# link resolved packages and specific input list of libraries
+	target_link_libraries(${LIB_NAME} PUBLIC ${PACKAGE_LIBRARIES} ${P_DEPENDENCY_LIBRARIES})	# link resolved packages and specific input list of libraries
 	
 	# precompiled headers
 	if(USE_PRECOMPILED_HEADERS)
