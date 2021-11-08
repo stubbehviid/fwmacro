@@ -112,7 +112,7 @@ macro(install_retain_dir_exclude_include)
 			list(JOIN PATH_LIST "/" SFILE)						# list back to path
 		endif()
 		get_filename_component(DIR ${SFILE} DIRECTORY)		# extract the relative sub folder to use as destination
-		#message(STATUS "FILE:${FILE}   ->   DIR=${CAS_DESTINATION}/${DIR}")
+		# message(STATUS "FILE:${FILE}   ->   DIR=${CAS_DESTINATION}/${DIR}")
         install(FILES ${FILE} DESTINATION ${CAS_DESTINATION}/${DIR})	# install the file
     endforeach()
 endmacro()
@@ -395,7 +395,7 @@ macro(make_library)
 	#handle installation
 	if(P_INSTALL)
 		install_library(NAME ${LIB_CORE_NAME} TYPE ${P_TYPE} 
-					    HEADER_FILES 		${P_HEADER_FILES}
+					    HEADER_FILES 		${P_CXX_HEADER_FILES}
 						DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS}
 						BIN_INSTALL_DIR 	${P_BIN_INSTALL_DIR}
 					    LIB_INSTALL_DIR 	${P_LIB_INSTALL_DIR}
