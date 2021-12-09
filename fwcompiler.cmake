@@ -57,6 +57,10 @@ if(MSVC)
 endif()
 
 if(COMPILER_FAMILY STREQUAL "CLANG")
+	OPTION( CLANG_USE_Werror "Use -Werror" ON)
+	OPTION( CLANG_USE_Wall "Use -Wall" ON)
+	OPTION( CLANG_USE_Wextra "Use -Wextra" OFF)
+
 	set(CLANG_ARCHITECTURE "native" CACHE STRING "Compile for CPU architecture")
 	OPTION (CLANG_STATIC_ANALYSIS "Use the clang static analyzer" OFF)
 	
@@ -202,6 +206,17 @@ else()	# posix compilers
 		string(APPEND CMAKE_CXX_FLAGS  " -Wno-deprecated-declarations")
 		string(APPEND CMAKE_CXX_FLAGS  " -Wno-ignored-attributes")
 		#string(APPEND CMAKE_CXX_FLAGS  " -Wno-unused-command-line-argument")
+		
+		# Warnings
+		if(CLANG_USE_Werror)
+			string(APPEND CMAKE_CXX_FLAGS  " -Werror")
+		endif()		
+		if(CLANG_USE_Wall)
+			string(APPEND CMAKE_CXX_FLAGS  " -Wall")
+		endif()		
+		if(CLANG_USE_Wextra)
+			string(APPEND CMAKE_CXX_FLAGS  " -Wextra")
+		endif()		
 		
 		# set architecture
 		string(APPEND CMAKE_CXX_FLAGS " -march=${CLANG_ARCHITECTURE}")		
