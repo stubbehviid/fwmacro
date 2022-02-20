@@ -7,7 +7,7 @@ set(COMPILER_FAMILY "UNKNOWN")
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   set(COMPILER_FAMILY "CLANG")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  set(COMPILER_FAMILY "GCC")
+  set(COMPILER_FAMILY "GNU")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   set(COMPILER_FAMILY "INTEL")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -47,8 +47,8 @@ set_property(CACHE CXX_COMPILER_STANDARD PROPERTY STRINGS cxx_std_98 cxx_std_11 
 
 # Copmpiler specific options
 
-if(MSVC)
-	OPTION (MSVC_USE_EXPERIMENTAL_OPENMP "use the MSVC --openmp:experimental clause" ON)
+if(COMPILER_FAMILY STREQUAL "MSVC")
+	#OPTION (MSVC_USE_EXPERIMENTAL_OPENMP "use the MSVC --openmp:experimental clause" ON)
 	
 	set(MSVC_WARNING_LEVEL "3" CACHE STRING "Compiler warning reporting level")
 	set_property(CACHE MSVC_WARNING_LEVEL PROPERTY STRINGS 0 1 2 3 4 all)
@@ -57,12 +57,15 @@ if(MSVC)
 endif()
 
 if(COMPILER_FAMILY STREQUAL "CLANG")
-	OPTION( CLANG_USE_Werror "Use -Werror" ON)
-	OPTION( CLANG_USE_Wall "Use -Wall" ON)
-	OPTION( CLANG_USE_Wextra "Use -Wextra" OFF)
+	OPTION( USE_Werror "Treat warnings as errors -Werror" OFF)
+	OPTION( USE_Wall "Use -Wall" ON)
+	OPTION( USE_Wextra "Use -Wextra" ON)
+	OPTION( USE_Wpedantic "Use -Wpedantic" ON)
 
 	set(CLANG_ARCHITECTURE "native" CACHE STRING "Compile for CPU architecture")
 	OPTION (CLANG_STATIC_ANALYSIS "Use the clang static analyzer" OFF)
+	
+	OPTION (CLANG_USE_TIDY "Use clang-tidy" OFF)
 	
 	OPTION( CLANG_SANITIZE_THREAD_SAFETY "Use -Wthread-safety -fsanitize=thread" OFF)
 	OPTION( CLANG_SANITIZE_ADDRESS "Use -fsanitize=address" OFF)
@@ -75,7 +78,22 @@ if(COMPILER_FAMILY STREQUAL "CLANG")
 		set(CLANG_STATIC_ANALYSIS_DIR "" CACHE STRING "Where to put the clang statioc analysis output files")
 	endif()
 	
+	OPTION( GENERATE_COMPILE_COMMANDS "generate compile_commands.json" ON)
 	
+	if(GENERATE_COMPILE_COMMANDS)
+		set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+	endif()
+	
+	if(CLANG_USE_TIDY)	
+		set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-header-filter=.;-checks=*;--use-color")
+	endif()
+endif()
+
+if(COMPILER_FAMILY STREQUAL "GNU")
+	OPTION( USE_Werror "Treat warnings as errors -Werror" OFF)
+	OPTION( USE_Wall "Use -Wall" ON)
+	OPTION( USE_Wextra "Use -Wextra" ON)
+	OPTION( USE_Wpedantic "Use -Wpedantic" ON)
 endif()
 
 # -------------------
@@ -111,9 +129,9 @@ if(USE_OPENMP)
 		add_compile_options( ${OpenMP_CXX_FLAGS} )
 		add_link_options( ${OpenMP_EXE_LINKER_FLAGS} )
 				
-		if(MSVC_USE_EXPERIMENTAL_OPENMP)
-			add_compile_options( "-openmp:experimental" )
-		endif()
+		#if(MSVC_USE_EXPERIMENTAL_OPENMP)
+		#	add_compile_options( "-openmp:experimental" )
+		#endif()
 		
 		link_libraries(${OpenMP_CXX_LIBRARIES})	
 		include_directories( ${OpenMP_CXX_INCLUDE_DIRS} )				
@@ -189,10 +207,10 @@ if(COMPILER_FAMILY STREQUAL "MSVC")	# windows compilers
 	
 	# disable anoying CRT warnings
 	string(APPEND CMAKE_CXX_FLAGS  " -D_CRT_SECURE_NO_WARNINGS " )
+endif()
 	
 	
-else()	# posix compilers
-
+if(COMPILER_FAMILY STREQUAL "CLANG")
 	# Optimizations
 	string(APPEND CMAKE_CXX_FLAGS "-${OPTIMIZATION_LEVEL_RELEASE}" )
 
@@ -201,51 +219,51 @@ else()	# posix compilers
 		string(APPEND CMAKE_CXX_FLAGS  " -ffast-math" )
 	endif()
 
-	if(COMPILER_FAMILY STREQUAL "CLANG")
-		string(APPEND CMAKE_CXX_FLAGS " -fno-omit-frame-pointer")
-		string(APPEND CMAKE_CXX_FLAGS  " -Wno-deprecated-declarations")
-		string(APPEND CMAKE_CXX_FLAGS  " -Wno-ignored-attributes")
-		#string(APPEND CMAKE_CXX_FLAGS  " -Wno-unused-command-line-argument")
+	string(APPEND CMAKE_CXX_FLAGS " -fno-omit-frame-pointer")
+	string(APPEND CMAKE_CXX_FLAGS  " -Wno-deprecated-declarations")
+	string(APPEND CMAKE_CXX_FLAGS  " -Wno-ignored-attributes")
+				
+	# Warnings
+	if(USE_Werror)
+		string(APPEND CMAKE_CXX_FLAGS  " -Werror")
+	endif()		
+	if(USE_Wall)
+		string(APPEND CMAKE_CXX_FLAGS  " -Wall")
+	endif()		
+	if(USE_Wextra)
+		string(APPEND CMAKE_CXX_FLAGS  " -Wextra")
+	endif()		
+	if(USE_Wpedantic)
+		string(APPEND CMAKE_CXX_FLAGS  " -Wpedantic")
+	endif()		
 		
-		# Warnings
-		if(CLANG_USE_Werror)
-			string(APPEND CMAKE_CXX_FLAGS  " -Werror")
-		endif()		
-		if(CLANG_USE_Wall)
-			string(APPEND CMAKE_CXX_FLAGS  " -Wall")
-		endif()		
-		if(CLANG_USE_Wextra)
-			string(APPEND CMAKE_CXX_FLAGS  " -Wextra")
-		endif()		
+	# set architecture
+	string(APPEND CMAKE_CXX_FLAGS " -march=${CLANG_ARCHITECTURE}")		
 		
-		# set architecture
-		string(APPEND CMAKE_CXX_FLAGS " -march=${CLANG_ARCHITECTURE}")		
-		
-		if(CLANG_STATIC_ANALYSIS)
-			string(APPEND CMAKE_CXX_FLAGS " --analyze -Xanalyzer -analyzer-output=text")
-			if(NOT "${CLANG_STATIC_ANALYSIS_DIR}" STREQUAL "")
+	if(CLANG_STATIC_ANALYSIS)
+		string(APPEND CMAKE_CXX_FLAGS " --analyze -Xanalyzer -analyzer-output=text")
+		if(NOT "${CLANG_STATIC_ANALYSIS_DIR}" STREQUAL "")
 			string(APPEND CMAKE_CXX_FLAGS " -o ${CLANG_STATIC_ANALYSIS_DIR}")
-			endif()
 		endif()
+	endif()
 		
-		if(CLANG_SANITIZE_THREAD_SAFETY)
-			string(APPEND CMAKE_CXX_FLAGS " -Wthread-safety -fsanitize=thread")		
-		endif()
-		if(CLANG_SANITIZE_ADDRESS)
-			string(APPEND CMAKE_CXX_FLAGS " -fsanitize=address")		
-		endif()
-		if(CLANG_SANITIZE_MEMORY)
-			string(APPEND CMAKE_CXX_FLAGS " -fsanitize=memory")		
-		endif()
-		if(CLANG_SANITIZE_UNDEFINED)
-			string(APPEND CMAKE_CXX_FLAGS " -fsanitize=undefined")
-		endif()
-		if(CLANG_SANITIZE_LEAK)
-			string(APPEND CMAKE_CXX_FLAGS " -fsanitize=leak")
-		endif()
-		if(CLANG_SANITIZE_SAFE_STACK)
-			string(APPEND CMAKE_CXX_FLAGS " -fsanitize=safe-stack")
-		endif()
+	if(CLANG_SANITIZE_THREAD_SAFETY)
+		string(APPEND CMAKE_CXX_FLAGS " -Wthread-safety -fsanitize=thread")		
+	endif()
+	if(CLANG_SANITIZE_ADDRESS)
+		string(APPEND CMAKE_CXX_FLAGS " -fsanitize=address")		
+	endif()
+	if(CLANG_SANITIZE_MEMORY)
+		string(APPEND CMAKE_CXX_FLAGS " -fsanitize=memory")		
+	endif()
+	if(CLANG_SANITIZE_UNDEFINED)
+		string(APPEND CMAKE_CXX_FLAGS " -fsanitize=undefined")
+	endif()
+	if(CLANG_SANITIZE_LEAK)
+		string(APPEND CMAKE_CXX_FLAGS " -fsanitize=leak")
+	endif()
+	if(CLANG_SANITIZE_SAFE_STACK)
+		string(APPEND CMAKE_CXX_FLAGS " -fsanitize=safe-stack")
 	endif()
 	
 	# copy c++ flags to C
@@ -268,12 +286,61 @@ else()	# posix compilers
 		fwmessage(STATUS "Building with AVX512 SIMD code generation")
 		string(APPEND CMAKE_CXX_FLAGS  " -mavx512")
 	endif()
-
-
+	
 endif()
+	
+if(COMPILER_FAMILY STREQUAL "GNU")
+	# Optimizations
+	string(APPEND CMAKE_CXX_FLAGS "-${OPTIMIZATION_LEVEL_RELEASE}" )
+
+	# fast math
+	if(USE_FAST_MATH)
+		string(APPEND CMAKE_CXX_FLAGS  " -ffast-math" )
+	endif()
+
+	string(APPEND CMAKE_CXX_FLAGS " -fno-omit-frame-pointer")
+	string(APPEND CMAKE_CXX_FLAGS  " -Wno-deprecated-declarations")
+	string(APPEND CMAKE_CXX_FLAGS  " -Wno-ignored-attributes")
+				
+	# Warnings
+	if(USE_Werror)
+		string(APPEND CMAKE_CXX_FLAGS  " -Werror")
+	endif()		
+	if(USE_Wall)
+		string(APPEND CMAKE_CXX_FLAGS  " -Wall")
+	endif()		
+	if(USE_Wextra)
+		string(APPEND CMAKE_CXX_FLAGS  " -Wextra")
+	endif()		
+	if(USE_Wpedantic)
+		string(APPEND CMAKE_CXX_FLAGS  " -Wpedantic")
+	endif()			
+	
+	# copy c++ flags to C
+	set(CMAKE_C_FLAGS ${CMAKE_CXX_FLAGS})
+	
+	# SIMD settings
+	if(USE_SSE)
+		fwmessage(STATUS "Building with SSE SIMD code generation")
+		string(APPEND CMAKE_CXX_FLAGS " -msse")		
+	elseif(USE_SSE2)
+		fwmessage(STATUS "Building with SSE2 SIMD code generation")
+		string(APPEND CMAKE_CXX_FLAGS " -msse2")
+	elseif(USE_AVX)
+		fwmessage(STATUS "Building with AVX SIMD code generation")
+		string(APPEND CMAKE_CXX_FLAGS " -mavx")
+	elseif(USE_AVX2)
+		fwmessage(STATUS "Building with AVX2 SIMD code generation")
+		string(APPEND CMAKE_CXX_FLAGS " -mavx -mavx2 -mfma")		
+	elseif(USE_AVX512)
+		fwmessage(STATUS "Building with AVX512 SIMD code generation")
+		string(APPEND CMAKE_CXX_FLAGS  " -mavx512")
+	endif()
+endif()	
 
 
 # print configuration
+fwmessage(STATUS "COMPILER_FAMILY = ${COMPILER_FAMILY}")
 fwmessage(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
 fwmessage(STATUS "CMAKE_CXX_FLAGS_RELEASE = ${CMAKE_CXX_FLAGS_RELEASE}")
 fwmessage(STATUS "CMAKE_CXX_FLAGS_RELWITHDEBINFO = ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
