@@ -23,28 +23,28 @@ include(fwcompiler)
 # macro: realize_package_dependencies
 #		find and activate a list of dependency packages (libraries with assicuate cmake config)
 #
-# realize_package_dependencies(OUTPUT_NAME <name> PACKAGES <list of packages>
+# realize_package_dependencies(OUTPUT_ID <name> PACKAGES <list of packages>
 #
-# OUTPUT_NAME  the macro with generate two variables named <OUTPUT_NAME>_INCLUDE_DIRS and <OUTPUT_NAME>_LIBRARIES
+# OUTPUT_ID  the macro with generate two variables named <OUTPUT_ID>_INCLUDE_DIRS and <OUTPUT_ID>_LIBRARIES
 # PACKAGES     list of packages to be included
 #              packages with submodules can be accessed using <package name>[<sub1>,<sub2>,...,<subN>]
 #
-# example realize_package_dependencies(OUTPUT_NAME LIBS PACKAGES fwstdlib Qt5[core,widgets]
+# example realize_package_dependencies(OUTPUT_ID LIBS PACKAGES fwstdlib Qt5[core,widgets]
 macro(realize_package_dependencies)
 	set(options "")
-    set(oneValueArgs "OUTPUT_NAME")
+    set(oneValueArgs "OUTPUT_ID")
     set(multiValueArgs "PACKAGES")
     cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )	
 
-	set(${P_OUTPUT_NAME}_INCLUDE_DIRS)
-	set(${P_OUTPUT_NAME}_LIBRARIES)
+	set(${P_OUTPUT_ID}_INCLUDE_DIRS)
+	set(${P_OUTPUT_ID}_LIBRARIES)
 
 	foreach(pck IN LISTS P_PACKAGES)	
 		string(FIND ${pck} "[" pos)
 		if(pos EQUAL -1)
 			find_package(${pck} REQUIRED)			
-			list(APPEND ${P_OUTPUT_NAME}_INCLUDE_DIRS ${${pck}_INCLUDE_DIRS})
-			list(APPEND ${P_OUTPUT_NAME}_LIBRARIES    ${${pck}_LIBRARIES})
+			list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${pck}_INCLUDE_DIRS})
+			list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${pck}_LIBRARIES})
 		else()			
 			string(LENGTH "${pck}" len)
 			string(SUBSTRING "${pck}" 0 ${pos} CORE_PACKAGE)
@@ -55,17 +55,17 @@ macro(realize_package_dependencies)
 		
 			find_package(${CORE_PACKAGE} COMPONENTS ${MODULES} REQUIRED)			
 			foreach(sub IN LISTS MODULES)		
-				list(APPEND ${P_OUTPUT_NAME}_INCLUDE_DIRS ${${CORE_PACKAGE}${sub}_INCLUDE_DIRS})
-				list(APPEND ${P_OUTPUT_NAME}_LIBRARIES    ${${CORE_PACKAGE}${sub}_LIBRARIES})				
+				list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${CORE_PACKAGE}${sub}_INCLUDE_DIRS})
+				list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${CORE_PACKAGE}${sub}_LIBRARIES})				
 			endforeach()
 		endif()			
 	endforeach()
 	
-	list(REMOVE_DUPLICATES ${P_OUTPUT_NAME}_INCLUDE_DIRS)
-	list(REMOVE_DUPLICATES ${P_OUTPUT_NAME}_LIBRARIES)	
+	list(REMOVE_DUPLICATES ${P_OUTPUT_ID}_INCLUDE_DIRS)
+	list(REMOVE_DUPLICATES ${P_OUTPUT_ID}_LIBRARIES)	
 	
-	fwmessage(STATUS "${P_OUTPUT_NAME}_INCLUDE_DIRS = ${${P_OUTPUT_NAME}_INCLUDE_DIRS}")
-	fwmessage(STATUS "${P_OUTPUT_NAME}_LIBRARIES = ${${P_OUTPUT_NAME}_LIBRARIES}")
+	fwmessage(STATUS "${P_OUTPUT_ID}_INCLUDE_DIRS = ${${P_OUTPUT_ID}_INCLUDE_DIRS}")
+	fwmessage(STATUS "${P_OUTPUT_ID}_LIBRARIES = ${${P_OUTPUT_ID}_LIBRARIES}")
 endmacro()
 
 # macro: realize_install_path
@@ -241,6 +241,42 @@ macro(install_library)
 	install(EXPORT ${LIB_NAME}Targets DESTINATION "${MODULE_CMAKE_INSTALL_DIR}" COMPONENT dev)	
 endmacro()
 
+#macro: install_executable
+#		Utility macro for handling the installation of executables
+#
+#	NAME 					<executable name>
+#	BIN_INSTALL_DIR			where to install binary executables <final destination will be <BIN_INSTALL_DIR>
+#	CMAKE_INSTALL_DIR		where to install cmake config files <final destination will be <CMAKE_INSTALL_DIR>/<NAME>
+#
+#	Note for all path input: if the distination is empty then the default GNU standard location with be used
+#							 if the specified path is relative to final output will go to <CMAKE_INSTALL_PREFIX>/<PATH>
+macro(install_executable)
+	# parse input
+    set(options "")
+    set(oneValueArgs NAME)
+    set(multiValueArgs BIN_INSTALL_DIR CMAKE_INSTALL_DIR)
+
+    cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )	
+	
+	fwmessage(STATUS "EXE_NAME      = ${P_NAME}")
+		
+	# realize the apsolute path of the various installation targets
+	realize_install_path(P_BIN_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}")
+	realize_install_path(P_CMAKE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake")
+
+	# generate paths relevant for the current library version (will be different for statis and shared lib versions
+	set(MODULE_BIN_INSTALL_DIR 		"${P_BIN_INSTALL_DIR}")
+	set(MODULE_CMAKE_INSTALL_DIR 	"${P_CMAKE_INSTALL_DIR}/${LIB_NAME}")
+
+	fwmessage(STATUS "BIN_INSTALL_DIR         = ${MODULE_BIN_INSTALL_DIR}")
+	fwmessage(STATUS "CMAKE_INSTALL_DIR       = ${MODULE_CMAKE_INSTALL_DIR}")
+	
+	# Installation
+	install (TARGETS ${P_NAME} RUNTIME DESTINATION ${MODULE_BIN_INSTALL_DIR} COMPONENT bin)	
+endmacro()
+
+
+
 
 
 # macro: make_library
@@ -313,7 +349,7 @@ macro(make_library)
 	fwmessage(STATUS "------------------------------------------------------")
 	
 	# locate dependencies
-	realize_package_dependencies(OUTPUT_NAME PACKAGE PACKAGES ${P_DEPENDENCY_PACKAGES})
+	realize_package_dependencies(OUTPUT_ID PACKAGE PACKAGES ${P_DEPENDENCY_PACKAGES})
 	
 	fwmessage(STATUS "PACKAGE_INCLUDE_DIRS 	  = ${PACKAGE_INCLUDE_DIRS}")
 	fwmessage(STATUS "PACKAGE_LIBRARIES   	  = ${PACKAGE_LIBRARIES}")
@@ -323,8 +359,9 @@ macro(make_library)
 	fwmessage(STATUS "PRIVATE_INCLUDE_DIRS    = ${P_PRIVATE_INCLUDE_DIRS}")
 
 	# define project files
-	list(APPEND PROJECT_COURCE_FILES ${P_CXX_SOURCE_FILES})
-	list(APPEND PROJECT_COURCE_FILES ${P_CXX_HEADER_FILES})
+	set(PROJECT_SOURCE_FILES)	# initiate PROJECT_SOURCE_FILES to empty
+	list(APPEND PROJECT_SOURCE_FILES ${P_CXX_SOURCE_FILES})
+	list(APPEND PROJECT_SOURCE_FILES ${P_CXX_HEADER_FILES})
 
 	#add cuda sullrt if requested
 	if(P_CUDA)
@@ -340,8 +377,8 @@ macro(make_library)
 			set(CUDA_LIBRARIES ${CUDA_LIBRARIES_SHARED})
 		endif()
 	
-		list(APPEND PROJECT_COURCE_FILES ${P_CUDA_SOURCE_FILES})
-		list(APPEND PROJECT_COURCE_FILES ${P_CUDA_HEADER_FILES})
+		list(APPEND PROJECT_SOURCE_FILES ${P_CUDA_SOURCE_FILES})
+		list(APPEND PROJECT_SOURCE_FILES ${P_CUDA_HEADER_FILES})
 	
 	endif()
 
@@ -352,9 +389,9 @@ macro(make_library)
 
 	# create the library
 	if(STATIC_LIB)
-		add_library(${LIB_NAME} STATIC ${PROJECT_COURCE_FILES})
+		add_library(${LIB_NAME} STATIC ${PROJECT_SOURCE_FILES})
 	else()
-		add_library(${LIB_NAME} SHARED ${PROJECT_COURCE_FILES})
+		add_library(${LIB_NAME} SHARED ${PROJECT_SOURCE_FILES})
 	endif()
 	
 	# set include and library dirs
@@ -403,8 +440,244 @@ macro(make_library)
 					    CMAKE_INSTALL_DIR	${P_CMAKE_INSTALL_DIR}
 						)
 	
+	endif()    
+endmacro()
+
+
+# macro: make_executable
+#		create an executable project
+#
+#	NAME <executable name>					Name of the executable to be generated
+#	CXX_SOURCE_FILES 						list of c++ source files
+#	CXX_HEADER_FILES						list of c++ header files
+#	DEPENDENCY_PACKAGES						list of dependency packages (libraries with cmake config)
+#	DEPENDENCY_LIBRARIES							list of library dependencies (libraries without cmake config)
+#	DEPENDENCY_INCLUDE_DIRS					list of filters containg includefiles needed by the library
+#
+#	PRIVATE_INCLUDE_DIRS					list of private include directories (include files only needed for the compilation of the executable
+#	Optional language support
+#		CUDA					if set CUDA support will be enabled
+#		CUDA_SOURCE_FILES		list of cuda source files
+#		CUDA_HEADER_FILES		list of cuda inlcude files
+#
+#	Optional input:
+#		INSTALL					if set the executable will also be installed
+#		BIN_INSTALL_DIR			where to install binary executables <final destination will be <BIN_INSTALL_DIR>
+#		LIB_INSTALL_DIR 		where to install library files <final destination will be <LIB_INSTALL_DIR>/<NAME>
+#		INCLUDE_INSTALL_DIR 	where to install include files <final destination will be <INCLUDE_INSTALL_DIR>/<NAME>
+#		CMAKE_INSTALL_DIR		where to install cmake config files <final destination will be <CMAKE_INSTALL_DIR>/<NAME>
+#
+#		Note for all path input: if the distinations are empty then the default GNU standard location with be used
+#							 if the specified path is relative then the final output will go to <CMAKE_INSTALL_PREFIX>/<PATH>
+macro(make_executable)
+    set(options "INSTALL" "CUDA")
+    set(oneValueArgs NAME)
+    set(multiValueArgs CXX_SOURCE_FILES 
+					   CXX_HEADER_FILES 
+					   DEPENDENCY_PACKAGES 
+					   DEPENDENCY_LIBRARIES 
+					   DEPENDENCY_INCLUDE_DIRS
+					   PRIVATE_INCLUDE_DIRS
+					   CUDA_SOURCE_FILES
+					   CUDA_HEADER_FILES
+					   BIN_INSTALL_DIR
+					   LIB_INSTALL_DIR
+					   INCLUDE_INSTALL_DIR
+					   CMAKE_INSTALL_DIR )
+    cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )	
+	
+	# grap the exe name
+	set(EXE_NAME ${P_NAME})	
+	
+	# tell what is being generated
+	fwmessage(STATUS "------------------------------------------------------")
+	fwmessage(STATUS "Generating ${EXE_NAME} executable")	
+	fwmessage(STATUS "------------------------------------------------------")
+	
+	# locate dependencies
+	realize_package_dependencies(OUTPUT_ID PACKAGE PACKAGES ${P_DEPENDENCY_PACKAGES})
+	
+	fwmessage(STATUS "CXX_SOURCE_FILES 	  	  = ${P_CXX_SOURCE_FILES}")
+	fwmessage(STATUS "CXX_HEADER_FILES 	  	  = ${P_CXX_HEADER_FILES}")
+	fwmessage(STATUS "PACKAGE_INCLUDE_DIRS 	  = ${PACKAGE_INCLUDE_DIRS}")
+	fwmessage(STATUS "PACKAGE_LIBRARIES   	  = ${PACKAGE_LIBRARIES}")
+	fwmessage(STATUS "DEPENDENCY_PACKAGES     = ${P_DEPENDENCY_PACKAGES}")
+	fwmessage(STATUS "DEPENDENCY_LIBRARIES    = ${P_DEPENDENCY_LIBRARIES}")
+	fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS = ${P_DEPENDENCY_INCLUDE_DIRS}")
+	fwmessage(STATUS "PRIVATE_INCLUDE_DIRS    = ${P_PRIVATE_INCLUDE_DIRS}")
+	if(P_CUDA)
+		fwmessage(STATUS "CXX_SOURCE_FILES 	  	  = ${P_CUDA_SOURCE_FILES}")
+		fwmessage(STATUS "CXX_HEADER_FILES 	  	  = ${P_CUDA_HEADER_FILES}")
 	endif()
 
+	# define project files
+	set(PROJECT_SOURCE_FILES)	# initiate PROJECT_SOURCE_FILES to empty
+	list(APPEND PROJECT_SOURCE_FILES ${P_CXX_SOURCE_FILES})
+	list(APPEND PROJECT_SOURCE_FILES ${P_CXX_HEADER_FILES})
 
-    
+	#add cuda sullrt if requested
+	if(P_CUDA)
+		# configure CUDA
+		include(cuda)
+		
+		# set active CUDA flags
+		if(STATIC_LIB)
+			set(CMAKE_CUDA_FLAGS ${CMAKE_CUDA_FLAGS_STATIC})
+			set(CUDA_LIBRARIES ${CUDA_LIBRARIES_STATIC})
+		else()
+			set(CMAKE_CUDA_FLAGS ${CMAKE_CUDA_FLAGS_SHARED})
+			set(CUDA_LIBRARIES ${CUDA_LIBRARIES_SHARED})
+		endif()
+	
+		list(APPEND PROJECT_SOURCE_FILES ${P_CUDA_SOURCE_FILES})
+		list(APPEND PROJECT_SOURCE_FILES ${P_CUDA_HEADER_FILES})
+	
+	endif()
+
+	# create the library
+	fwmessage(STATUS "PROJECT_SOURCE_FILES    = ${PROJECT_SOURCE_FILES}")
+	add_executable(${EXE_NAME} ${PROJECT_SOURCE_FILES})
+	
+	# set include and library dirs
+	target_include_directories(${EXE_NAME} PUBLIC 	${PACKAGE_INCLUDE_DIRS})		# include dirs needed for pagkages
+	target_include_directories(${EXE_NAME} PUBLIC  	${P_DEPENDENCY_INCLUDE_DIRS})	# include dirs needed by specific non packet libraries
+	target_include_directories(${EXE_NAME} PUBLIC  ${PROJECT_SOURCE_DIR})				# add project source as private
+	target_include_directories(${EXE_NAME} PUBLIC  ${PROJECT_BINARY_DIR})				# add project binary as private
+	target_include_directories(${EXE_NAME} PUBLIC  ${P_PRIVATE_INCLUDE_DIRS})			# add additional private include dirs (like ./include if the project include files are not found in the root)
+			
+	target_link_libraries(${EXE_NAME} ${PACKAGE_LIBRARIES} ${P_DEPENDENCY_LIBRARIES})	# link resolved packages and specific input list of libraries
+	
+	# precompiled headers
+	if(USE_PRECOMPILED_HEADERS)
+		target_precompile_headers(${LIB_NAME} PUBLIC ${HEADER_FILES})
+	endif()
+	
+	# compile options
+	target_compile_features(${EXE_NAME} PUBLIC ${CXX_COMPILER_STANDARD})
+	
+	# set target properties
+	set_target_properties(${EXE_NAME} PROPERTIES VERSION "${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}.${CMAKE_PROJECT_VERSION_PATCH}")
+
+	#handle installation
+	if(P_INSTALL)
+		install_executable(NAME ${EXE_NAME} BIN_INSTALL_DIR ${P_BIN_INSTALL_DIR} CMAKE_INSTALL_DIR	${P_CMAKE_INSTALL_DIR})
+	endif()    
+endmacro()
+
+# macro: make_tests
+#		create a standard unit test project
+#
+#	LIB_NAME <name of library for which the unit tests are made>
+#	TEST_MASK <mask>						file search mask for finding test source files (typically "*_test.cpp")
+#	LIBTEST_CONFIG_DIR						folder where library configuration include file is located (within parent source tree)
+#	DEPENDENCY_PACKAGES						list of dependency packages (libraries with cmake config)
+#	DEPENDENCY_LIBRARIES							list of library dependencies (libraries without cmake config)
+#	DEPENDENCY_INCLUDE_DIRS					list of filters containg includefiles needed by the library
+#
+#	PRIVATE_INCLUDE_DIRS					list of private include directories (include files only needed for the compilation of the executable
+#	Optional language support
+#		CUDA					if set CUDA support will be enabled
+
+#
+macro(make_tests)
+
+set(options "CUDA")
+    set(oneValueArgs LIB_NAME TEST_MASK LIBTEST_CONFIG_DIR)
+    set(multiValueArgs DEPENDENCY_PACKAGES 
+					   DEPENDENCY_LIBRARIES 
+					   DEPENDENCY_INCLUDE_DIRS
+					   PRIVATE_INCLUDE_DIRS
+					   CUDA_SOURCE_FILES
+					   CUDA_HEADER_FILES )
+    cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )	
+
+	# tell what is being generated
+	fwmessage(STATUS "------------------------------------------------------")
+	fwmessage(STATUS "Generating tests for ${P_LIB_NAME}")	
+	fwmessage(STATUS "------------------------------------------------------")
+
+	# enable testing 
+	enable_testing ()
+
+	OPTION (USE_EXTERNAL_CATCH2_INSTALL "If set use an external version of the catch2 test environment" ON)
+
+	# determine static vs shared linking
+	# options
+	if(BUILD_STATIC_LIB AND BUILD_SHARED_LIB)
+		OPTION (LINK_TESTS_AGINAST_STATIC "Lisk test unit tests against the static version of ${P_LIB_NAME}" ON)
+	else()
+		if(BUILD_STATIC_LIB)
+			set(LINK_TESTS_AGINAST_STATIC ON)
+		else()
+			set(LINK_TESTS_AGINAST_STATIC OFF)
+		endif()
+	endif()
+
+	# determine which library to link against
+	if(LINK_TESTS_AGINAST_STATIC)
+		set(LIB_NAME ${P_LIB_NAME}_static)
+	else()
+		set(LIB_NAME ${P_LIB_NAME})
+	endif()
+	message(STATUS "linking tests against: ${LIB_NAME}")
+
+	# handle defaults for TEST_MASK
+	if("${P_TEST_MASK}" STREQUAL "")
+		set(P_TEST_MASK "*_test.cpp")
+	endif()
+	fwmessage(STATUS "Searching for tests using file mask    = ${P_TEST_MASK}")
+
+	# handle linkage of catch2 test environment
+	if(USE_EXTERNAL_CATCH2_INSTALL)
+		find_package(Catch2 2 REQUIRED)
+	else()
+		# get the catch2 test environment
+		Include(FetchContent)	
+
+		# download catch2 from github
+		FetchContent_Declare(Catch2
+							GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+							GIT_TAG        v2.13.8
+							)
+		# make it available
+		FetchContent_MakeAvailable(Catch2)
+	endif()
+
+	# find the test source files
+	file(GLOB TEST_SOURCE_FILES RELATIVE  ${CMAKE_CURRENT_SOURCE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/${P_TEST_MASK}")
+	fwmessage(STATUS "Found test source files    = ${TEST_SOURCE_FILES}")
+
+	if(P_CUDA)
+		make_executable(NAME tests 
+						CXX_SOURCE_FILES ${TEST_SOURCE_FILES}
+						DEPENDENCY_PACKAGES ${P_DEPENDENCY_PACKAGES} ${LIB_NAME} 
+						DEPENDENCY_LIBRARIES ${P_DEPENDENCY_LIBRARIES}
+						DEPENDENCY_INCLUDE_DIRS ${P_DEPENDENCY_INCLUDE_DIRS}
+						PRIVATE_INCLUDE_DIRS ${P_PRIVATE_INCLUDE_DIRS}
+						CUDA
+						CUDA_SOURCE_FILES ${P_CUDA_SOURCE_FILES}
+						CUDA_HEADER_FILES ${P_CUDA_HEADER_FILES}
+						)
+	
+	else()
+		make_executable(NAME tests 
+						CXX_SOURCE_FILES ${TEST_SOURCE_FILES}
+						DEPENDENCY_PACKAGES ${P_DEPENDENCY_PACKAGES} ${LIB_NAME}
+						DEPENDENCY_LIBRARIES ${P_DEPENDENCY_LIBRARIES}
+						DEPENDENCY_INCLUDE_DIRS ${P_DEPENDENCY_INCLUDE_DIRS}
+						PRIVATE_INCLUDE_DIRS ${P_PRIVATE_INCLUDE_DIRS}
+						)
+	endif()
+							
+	target_include_directories(tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/.. ${PROJECT_BINARY_DIR} ${P_DEPENDENCY_INCLUDE_DIRS} ${P_LIBTEST_CONFIG_DIR})
+	target_link_libraries(tests Catch2::Catch2)
+
+	# work around for internal catch2 installation
+	if(NOT USE_EXTERNAL_CATCH2_INSTALL)
+		list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+	endif()
+	
+	include(CTest)
+	include(Catch)
+	catch_discover_tests(tests)
 endmacro()
