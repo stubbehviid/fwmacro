@@ -324,33 +324,28 @@ macro(install_library)
 	fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS = ${DEPENDENCY_INCLUDE_DIRS}")
 		
 	# Installation
-	if(INSTALL_STATIC)		
-		install (TARGETS ${STATIC_LIB_NAME}
-				 EXPORT ${STATIC_LIB_NAME}Targets
+	if(INSTALL_STATIC)			
+		install (TARGETS ${STATIC_LIB_MAME}
+				 EXPORT ${STATIC_LIB_MAME}Targets
 				 RUNTIME DESTINATION ${MODULE_BIN_INSTALL_DIR} COMPONENT bin
 				 LIBRARY DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT shlib
-				 ARCHIVE DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT lib)		  
-		
-		# PDB files on windows
-		if(MSVC)
-			install(FILES "${PROJECT_BINARY_DIR}/Debug/${STATIC_LIB_NAME}d.pdb" 		 DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS Debug)
-		endif()	
+				 ARCHIVE DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT lib)		  		
 	endif()
 	
 	if(INSTALL_SHARED)	
-		install (TARGETS ${SHARED_LIB_NAME}
-				 EXPORT ${SHARED_LIB_NAME}Targets
+		install (TARGETS ${SHARED_LIB_MAME}
+				 EXPORT ${SHARED_LIB_MAME}Targets
 				 RUNTIME DESTINATION ${MODULE_BIN_INSTALL_DIR} COMPONENT bin
 				 LIBRARY DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT shlib
-				 ARCHIVE DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT lib)		  
-		
-		# PDB files on windows
-		IF(MSVC)
-			install(FILES "${PROJECT_BINARY_DIR}/Debug/${SHARED_LIB_NAME}d.pdb" 		 DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS Debug)
-			# MSVC does not generated pdb files for RelWithDebInfo woth target being a static library
-			install(FILES "${PROJECT_BINARY_DIR}/RelWithDebInfo/${SHARED_LIB_NAME}.pdb" DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS RelWithDebInfo)
-		endif()	
+				 ARCHIVE DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT lib)		  		
 	endif()
+
+	# PDB files on windows
+	IF(MSVC)
+		install(FILES "${PROJECT_BINARY_DIR}/Debug/${P_NAME}d.pdb" 		   DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS Debug)
+		install(FILES "${PROJECT_BINARY_DIR}/RelWithDebInfo/${P_NAME}.pdb" DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS RelWithDebInfo)
+	endif()	
+
 
 	# include files
 	install_retain_dir_exclude_include(DESTINATION ${MODULE_INCLUDE_INSTALL_DIR} FILES ${P_HEADER_FILES})
@@ -549,6 +544,12 @@ macro(make_library)
 
 	target_link_libraries(${OBJECT_LIB_NAME} PUBLIC ${P_DEPENDENCY_LIBRARIES})				# link dependency libraries
 
+	# If using MSVC the set the debug database filename
+	if(MSVC)
+		set_property(TARGET ${OBJECT_LIB_NAME} PROPERTY COMPILE_PDB_NAME_DEBUG "${P_NAME}d")
+		set_property(TARGET ${OBJECT_LIB_NAME} PROPERTY COMPILE_PDB_NAME_RELWITHDEBINFO "${P_NAME}")		
+	endif()
+
 	# precompiled headers
 	if(USE_PRECOMPILED_HEADERS)
 		set(RESOLVED_HEADER_FILES)
@@ -576,16 +577,7 @@ macro(make_library)
 		set_target_properties(${SHARED_LIB_MAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 		
 		# append d to debug libraries
-		set_property(TARGET ${SHARED_LIB_MAME} PROPERTY DEBUG_POSTFIX d)
-
-		# If using MSVC the set the debug database filename
-		if(MSVC)
-			set_property(TARGET ${SHARED_LIB_MAME} PROPERTY COMPILE_PDB_NAME_DEBUG "${SHARED_LIB_MAME}d")
-			if(NOT STATIC_LIB)
-				set_property(TARGET ${SHARED_LIB_MAME} PROPERTY COMPILE_PDB_NAME_RELWITHDEBINFO "${SHARED_LIB_MAME}")		# MSVC does not generate pdb files for static librarues in RELWITHDEBINFO
-			endif()
-		endif()
-		
+		set_property(TARGET ${SHARED_LIB_MAME} PROPERTY DEBUG_POSTFIX d)		
 	endif()
 	
 	if(BUILD_STATIC)
@@ -596,16 +588,7 @@ macro(make_library)
 		target_link_libraries(${STATIC_LIB_MAME} PUBLIC ${PACKAGE_STATIC_LIBRARIES})
 		
 		# append d to debug libraries
-		set_property(TARGET ${STATIC_LIB_MAME} PROPERTY DEBUG_POSTFIX d)
-
-		# If using MSVC the set the debug database filename
-		if(MSVC)
-			set_property(TARGET ${STATIC_LIB_MAME} PROPERTY COMPILE_PDB_NAME_DEBUG "${STATIC_LIB_MAME}d")
-			if(NOT STATIC_LIB)
-				set_property(TARGET ${STATIC_LIB_MAME} PROPERTY COMPILE_PDB_NAME_RELWITHDEBINFO "${STATIC_LIB_MAME}")		# MSVC does not generate pdb files for static librarues in RELWITHDEBINFO
-			endif()
-		endif()
-		
+		set_property(TARGET ${STATIC_LIB_MAME} PROPERTY DEBUG_POSTFIX d)		
 	endif()
 
 	#handle installation
