@@ -312,9 +312,9 @@ macro(install_library)
 
 	# generate paths relevant for the current library version (will be different for statis and shared lib versions
 	set(MODULE_BIN_INSTALL_DIR 		"${P_BIN_INSTALL_DIR}")
-	set(MODULE_LIB_INSTALL_DIR     	"${P_LIB_INSTALL_DIR}/${LIB_CORE_NAME}")
-	set(MODULE_INCLUDE_INSTALL_DIR 	"${P_INCLUDE_INSTALL_DIR}/${LIB_CORE_NAME}")
-	set(MODULE_CMAKE_INSTALL_DIR 	"${P_CMAKE_INSTALL_DIR}/${LIB_NAME}")
+	set(MODULE_LIB_INSTALL_DIR     	"${P_LIB_INSTALL_DIR}/${P_NAME}")
+	set(MODULE_INCLUDE_INSTALL_DIR 	"${P_INCLUDE_INSTALL_DIR}/${P_NAME}")
+	set(MODULE_CMAKE_INSTALL_DIR 	"${P_CMAKE_INSTALL_DIR}/${P_NAME}")
 	set(DEPENDENCY_INCLUDE_DIRS 	 ${P_DEPENDENCY_INCLUDE_DIRS})	
 
 	fwmessage(STATUS "BIN_INSTALL_DIR         = ${MODULE_BIN_INSTALL_DIR}")
@@ -353,6 +353,8 @@ macro(install_library)
 
 	# Configuration handling
 	include(CMakePackageConfigHelpers)
+
+	fwmessage(STATUS "qqqqqqqqMODULE_CMAKE_INSTALL_DIR    = ${MODULE_CMAKE_INSTALL_DIR}")
 
 	# handle configuration
 	if(INSTALL_STATIC)			
@@ -494,9 +496,6 @@ macro(make_library)
 		fwmessage(STATUS "PACKAGE_SHARED_LIBRARIES   	  = ${PACKAGE_SHARED_LIBRARIES}")
 	endif()
 
-	#define library name
-	set(LIB_CORE_NAME ${P_NAME})
-
 	# define project files
 	set(PROJECT_SOURCE_FILES)	# initiate PROJECT_SOURCE_FILES to empty
 	list(APPEND PROJECT_SOURCE_FILES ${P_CXX_SOURCE_FILES})
@@ -524,7 +523,7 @@ macro(make_library)
 	# handle project config file
 	find_file(H_CONFIG_IN config.h.in PATHS ${CMAKE_CURRENT_SOURCE_PATH} ${CMAKE_MODULE_PATH})
 	fwmessage(STATUS "H_CONFIG_IN = ${H_CONFIG_IN}")
-	configure_file(${H_CONFIG_IN} ${PROJECT_BINARY_DIR}/${LIB_CORE_NAME}_config.h)
+	configure_file(${H_CONFIG_IN} ${PROJECT_BINARY_DIR}/${P_NAME}_config.h)
 
 	# print source files
 	fwmessage(STATUS "PROJECT_SOURCE_FILES = ${PROJECT_SOURCE_FILES}")
@@ -593,7 +592,7 @@ macro(make_library)
 
 	#handle installation
 	if(P_INSTALL)
-		install_library(NAME ${LIB_CORE_NAME} TYPE ${P_TYPE} 
+		install_library(NAME ${P_NAME} TYPE ${P_TYPE} 
 					    HEADER_FILES 		${P_CXX_HEADER_FILES}
 						DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS}
 						BIN_INSTALL_DIR 	${P_BIN_INSTALL_DIR}
