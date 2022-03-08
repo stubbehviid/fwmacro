@@ -25,13 +25,14 @@ include(fwcompiler)
 #
 # realize_package_dependencies(OUTPUT_ID <name> PACKAGES <list of packages>
 #
+# PREFER_STATIC		if option set realize_package_dependencies will look for static package version first else shared
 # OUTPUT_ID  the macro with generate two variables named <OUTPUT_ID>_INCLUDE_DIRS and <OUTPUT_ID>_LIBRARIES
 # PACKAGES     list of packages to be included
 #              packages with submodules can be accessed using <package name>[<sub1>,<sub2>,...,<subN>]
 #
 # example realize_package_dependencies(OUTPUT_ID LIBS PACKAGES fwstdlib Qt5[core,widgets]
 macro(realize_package_dependencies)
-	set(options "")
+	set(options "PREFER_STATIC")
     set(oneValueArgs "OUTPUT_ID")
     set(multiValueArgs "PACKAGES")
     cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )	
@@ -39,13 +40,46 @@ macro(realize_package_dependencies)
 	set(${P_OUTPUT_ID}_INCLUDE_DIRS)
 	set(${P_OUTPUT_ID}_LIBRARIES)
 
+
 	foreach(pck IN LISTS P_PACKAGES)	
+		# set found to FALSE
+		set(P_FOUND OFF)
+	
+		# look for component identifier character '['
 		string(FIND ${pck} "[" pos)
 		if(pos EQUAL -1)
-			find_package(${pck} REQUIRED)			
-			list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${pck}_INCLUDE_DIRS})
-			list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${pck}_LIBRARIES})
+			# Simple package search
+			if(P_PREFER_STATIC)
+				find_package(${pck}_static)	
+				if(${pck}_static_FOUND)
+					list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${pck}_static_INCLUDE_DIRS})
+					list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${pck}_static_LIBRARIES})
+					set(P_FOUND ON)
+				else()
+					find_package(${pck})	
+					if(${pck}_FOUND)
+						list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${pck}_INCLUDE_DIRS})
+						list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${pck}_LIBRARIES})
+						set(P_FOUND ON)
+					endif()
+				endif()
+			else()
+				find_package(${pck})	
+				if(${pck}_FOUND)
+					list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${pck}_INCLUDE_DIRS})
+					list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${pck}_LIBRARIES})
+					set(P_FOUND ON)
+				else()
+					find_package(${pck}_static)	
+					if(${pck}_FOUND)
+						list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${pck}_static_INCLUDE_DIRS})
+						list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${pck}_static_LIBRARIES})
+						set(P_FOUND ON)
+					endif()
+				endif()
+			endif()
 		else()			
+			# Component package search
 			string(LENGTH "${pck}" len)
 			string(SUBSTRING "${pck}" 0 ${pos} CORE_PACKAGE)
 			string(SUBSTRING "${pck}" ${pos}+1 ${len}  MODULES)
@@ -53,12 +87,48 @@ macro(realize_package_dependencies)
 			string(REGEX REPLACE "[\]\[]" "" MODULES "${MODULES}")
 			string(REGEX REPLACE "[,]" ";" MODULES "${MODULES}")		
 		
-			find_package(${CORE_PACKAGE} COMPONENTS ${MODULES} REQUIRED)			
-			foreach(sub IN LISTS MODULES)		
-				list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${CORE_PACKAGE}${sub}_INCLUDE_DIRS})
-				list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${CORE_PACKAGE}${sub}_LIBRARIES})				
-			endforeach()
-		endif()			
+			if(P_PREFER_STATIC)
+				find_package(${CORE_PACKAGE}_static COMPONENTS ${MODULES})	
+				if(${CORE_PACKAGE}_static_FOUND)
+					foreach(sub IN LISTS MODULES)		
+						list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${CORE_PACKAGE}_static${sub}_INCLUDE_DIRS})
+						list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${CORE_PACKAGE}_static${sub}_LIBRARIES})				
+					endforeach()
+					set(P_FOUND ON)
+				else()
+					find_package(${CORE_PACKAGE} COMPONENTS ${MODULES})	
+					if(${CORE_PACKAGE}_FOUND)
+						foreach(sub IN LISTS MODULES)		
+							list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${CORE_PACKAGE}${sub}_INCLUDE_DIRS})
+							list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${CORE_PACKAGE}${sub}_LIBRARIES})				
+						endforeach()
+						set(P_FOUND ON)
+					endif()
+				endif()
+			else()
+				find_package(${CORE_PACKAGE} COMPONENTS ${MODULES})	
+				if(${CORE_PACKAGE}_FOUND)
+					foreach(sub IN LISTS MODULES)		
+						list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${CORE_PACKAGE}${sub}_INCLUDE_DIRS})
+						list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${CORE_PACKAGE}${sub}_LIBRARIES})				
+					endforeach()
+					set(P_FOUND ON)
+				else()
+					find_package(${CORE_PACKAGE}_static COMPONENTS ${MODULES})	
+					if(${CORE_PACKAGE}_static_FOUND)
+						foreach(sub IN LISTS MODULES)		
+							list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${CORE_PACKAGE}_static${sub}_INCLUDE_DIRS})
+							list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${CORE_PACKAGE}_static${sub}_LIBRARIES})				
+						endforeach()
+						set(P_FOUND ON)
+					endif()
+				endif()
+			endif()		
+		endif()	
+
+		if(NOT P_FOUND)
+			message(FATAL_ERROR "Cannot resolve dependency package ${pck}")
+		endif()		
 	endforeach()
 	
 	list(REMOVE_DUPLICATES ${P_OUTPUT_ID}_INCLUDE_DIRS)
@@ -117,102 +187,46 @@ macro(install_retain_dir_exclude_include)
     endforeach()
 endmacro()
 
-#macro: install_library
-#		Utility macro for handling the installation of libraries
+#macro: install_lib_config
+#		Handle the installation of the cmake libration config files
 #
-#	NAME 					<library name>
-#	TYPE					<library type   STATIC or SHARED>
-#	HEADER_FILES			<list of c++ header files to be installed>
-#	DEPENDENCY_INCLUDE_DIRS	<list of dependenct include directories that shoudl be included in the cmake config>
-#	BIN_INSTALL_DIR			where to install binary executables <final destination will be <BIN_INSTALL_DIR>
-#	LIB_INSTALL_DIR 		where to install library files <final destination will be <LIB_INSTALL_DIR>/<NAME>
-#	INCLUDE_INSTALL_DIR 	where to install include files <final destination will be <INCLUDE_INSTALL_DIR>/<NAME>
-#	CMAKE_INSTALL_DIR		where to install cmake config files <final destination will be <CMAKE_INSTALL_DIR>/<NAME>
+#	LIB_NAME 					<library name>
+#	MODULE_CMAKE_INSTALL_DIR	<directory where the cmake files are to be installed
 #
-#	Note for all path input: if the distination is empty then the default GNU standard location with be used
-#							 if the specified path is relative to final output will go to <CMAKE_INSTALL_PREFIX>/<PATH>
-macro(install_library)
+macro(install_lib_config)
 	# parse input
     set(options "")
-    set(oneValueArgs NAME TYPE)
-    set(multiValueArgs HEADER_FILES
-					   DEPENDENCY_INCLUDE_DIRS
-					   BIN_INSTALL_DIR 
-					   LIB_INSTALL_DIR 
-					   INCLUDE_INSTALL_DIR 
-					   CMAKE_INSTALL_DIR)					   
+    set(oneValueArgs LIB_NAME MODULE_CMAKE_INSTALL_DIR DEPENDENCY_INCLUDE_DIRS)
+    set(multiValueArgs)
     cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )	
-	
-	# handle naming
-	set(LIB_CORE_NAME ${P_NAME})
-	if("${P_TYPE}" STREQUAL "STATIC")
-		set(LIB_NAME ${P_NAME}_static)
-	else()
-		set(LIB_NAME ${P_NAME})
-	endif()	
-	
-	fwmessage(STATUS "LIB_CORE_NAME = ${LIB_CORE_NAME}")
-	fwmessage(STATUS "LIB_NAME      = ${LIB_NAME}")
-	
-	
-	
-	# realize the apsolute path of the various installation targets
-	realize_install_path(P_BIN_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}")
-	realize_install_path(P_LIB_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}")
-	realize_install_path(P_INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_INCLUDEDIR}")
-	realize_install_path(P_CMAKE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake")
 
-	# generate paths relevant for the current library version (will be different for statis and shared lib versions
-	set(MODULE_BIN_INSTALL_DIR 		"${P_BIN_INSTALL_DIR}")
-	set(MODULE_LIB_INSTALL_DIR     	"${P_LIB_INSTALL_DIR}/${LIB_CORE_NAME}")
-	set(MODULE_INCLUDE_INSTALL_DIR 	"${P_INCLUDE_INSTALL_DIR}/${LIB_CORE_NAME}")
-	set(MODULE_CMAKE_INSTALL_DIR 	"${P_CMAKE_INSTALL_DIR}/${LIB_NAME}")
-	set(DEPENDENCY_INCLUDE_DIRS 	 ${P_DEPENDENCY_INCLUDE_DIRS})	
-
-	fwmessage(STATUS "BIN_INSTALL_DIR         = ${MODULE_BIN_INSTALL_DIR}")
-	fwmessage(STATUS "LIB_INSTALL_DIR         = ${MODULE_LIB_INSTALL_DIR}")
-	fwmessage(STATUS "INCLUDE_INSTALL_DIR     = ${MODULE_INCLUDE_INSTALL_DIR}")
-	fwmessage(STATUS "CMAKE_INSTALL_DIR       = ${MODULE_CMAKE_INSTALL_DIR}")
-	fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS = ${DEPENDENCY_INCLUDE_DIRS}")
+	# tell what is being done
+	fwmessage(STATUS "------------------------------------------------------")
+	fwmessage(STATUS "install lib config for library: ${P_LIB_NAME}")	
+	fwmessage(STATUS "------------------------------------------------------")
+	fwmessage(STATUS "LIB_NAME                 = ${P_LIB_NAME}")
 	
-	# Installation
-	install (TARGETS ${LIB_NAME}
-			 EXPORT ${LIB_NAME}Targets
-			 RUNTIME DESTINATION ${MODULE_BIN_INSTALL_DIR} COMPONENT bin
-			 LIBRARY DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT shlib
-			 ARCHIVE DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT lib)		  
-	
-	# PDB files on windows
-	IF(MSVC)
-		install(FILES "${PROJECT_BINARY_DIR}/Debug/${LIB_NAME}d.pdb" 		 DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS Debug)
-		if("${P_TYPE}" STREQUAL "SHARED")
-			# MSVC does not generated pdb files for RelWithDebInfo woth target being a static library
-			install(FILES "${PROJECT_BINARY_DIR}/RelWithDebInfo/${LIB_NAME}.pdb" DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS RelWithDebInfo)
-		endif()
-	ENDIF()	
-
-	# include files
-	install_retain_dir_exclude_include(DESTINATION ${MODULE_INCLUDE_INSTALL_DIR} FILES ${P_HEADER_FILES})
-	install (FILES ${PROJECT_BINARY_DIR}/${LIB_CORE_NAME}_config.h DESTINATION ${MODULE_INCLUDE_INSTALL_DIR})
-
 	# handle configuration
-	set(CONFIG_FILE "${LIB_NAME}Config.cmake")
-	set(VERSION_FILE "${LIB_NAME}ConfigVersion.cmake")
-	set(TARGETS_FILE "${LIB_NAME}Targets.cmake")
+	set(CONFIG_FILE "${P_LIB_NAME}Config.cmake")
+	set(VERSION_FILE "${P_LIB_NAME}ConfigVersion.cmake")
+	set(TARGETS_FILE "${P_LIB_NAME}Targets.cmake")
+	set(MODULE_CMAKE_INSTALL_DIR ${P_MODULE_CMAKE_INSTALL_DIR})
+	set(DEPENDENCY_INCLUDE_DIRS ${P_DEPENDENCY_INCLUDE_DIRS})
+
 	
 	fwmessage(STATUS "generating ${CONFIG_FILE}")
 	fwmessage(STATUS "generating ${VERSION_FILE}")
 	fwmessage(STATUS "generating ${TARGETS_FILE}")
-
-	# Configuration handling
-	include(CMakePackageConfigHelpers)
+	fwmessage(STATUS "MODULE_CMAKE_INSTALL_DIR = ${MODULE_CMAKE_INSTALL_DIR}")
+	fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS  = ${DEPENDENCY_INCLUDE_DIRS}")
+	
 
 	# Add all targets to the build-tree export set
-	export(TARGETS ${LIB_NAME} FILE "${PROJECT_BINARY_DIR}/${TARGETS_FILE}")
+	export(TARGETS ${P_LIB_NAME} FILE "${PROJECT_BINARY_DIR}/${TARGETS_FILE}")
 
 	# Export the package for use from the build-tree
 	# (this registers the build-tree with a global CMake-registry)
-	export(PACKAGE ${LIB_NAME})
+	export(PACKAGE ${P_LIB_NAME})
 
 	# locate a template for the config file (will use libConfig.cmake.in in projetc root if existing then fall back to the global default in cmake 
 	find_file(LIB_CONFIG_IN libConfig.cmake.in PATHS ${CMAKE_CURRENT_SOURCE_PATH} ${CMAKE_MODULE_PATH})
@@ -238,7 +252,121 @@ macro(install_library)
 					DESTINATION "${MODULE_CMAKE_INSTALL_DIR}" COMPONENT dev)
 
 	# Install the export set for use with the install-tree
-	install(EXPORT ${LIB_NAME}Targets DESTINATION "${MODULE_CMAKE_INSTALL_DIR}" COMPONENT dev)	
+	#install(EXPORT ${P_LIB_NAME}Targets DESTINATION "${P_MODULE_CMAKE_INSTALL_DIR}" COMPONENT dev)	
+	
+	# print finished message
+	fwmessage(STATUS "done install lib config for library: ${P_LIB_NAME}")	
+endmacro()
+
+
+
+#macro: install_library
+#		Utility macro for handling the installation of libraries
+#
+#	NAME 					<library name>
+#	TYPE					<library type   STATIC, SHARED or STATIC_AND_SHARED>
+#	HEADER_FILES			<list of c++ header files to be installed>
+#	DEPENDENCY_INCLUDE_DIRS	<list of dependenct include directories that shoudl be included in the cmake config>
+#	BIN_INSTALL_DIR			where to install binary executables <final destination will be <BIN_INSTALL_DIR>
+#	LIB_INSTALL_DIR 		where to install library files <final destination will be <LIB_INSTALL_DIR>/<NAME>
+#	INCLUDE_INSTALL_DIR 	where to install include files <final destination will be <INCLUDE_INSTALL_DIR>/<NAME>
+#	CMAKE_INSTALL_DIR		where to install cmake config files <final destination will be <CMAKE_INSTALL_DIR>/<NAME>
+#
+#	Note for all path input: if the distination is empty then the default GNU standard location with be used
+#							 if the specified path is relative to final output will go to <CMAKE_INSTALL_PREFIX>/<PATH>
+macro(install_library)
+	# parse input
+    set(options "")
+    set(oneValueArgs NAME TYPE)
+    set(multiValueArgs HEADER_FILES
+					   DEPENDENCY_INCLUDE_DIRS
+					   BIN_INSTALL_DIR 
+					   LIB_INSTALL_DIR 
+					   INCLUDE_INSTALL_DIR 
+					   CMAKE_INSTALL_DIR)					   
+    cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )	
+	
+	# tell what is being done
+	fwmessage(STATUS "------------------------------------------------------")
+	fwmessage(STATUS "Installing ${P_NAME} library")	
+	fwmessage(STATUS "------------------------------------------------------")
+	
+	# handle library naming
+	if("${P_TYPE}" STREQUAL "STATIC" OR "${P_TYPE}" STREQUAL "STATIC_AND_SHARED" OR  "${P_TYPE}" STREQUAL "SHARED_AND_STATIC")
+		set(INSTALL_STATIC ON)
+		set(STATIC_LIB_MAME ${P_NAME}_static)
+		fwmessage(STATUS "STATIC_LIB_MAME = ${STATIC_LIB_MAME}")
+	endif()
+	
+	if("${P_TYPE}" STREQUAL "SHARED" OR "${P_TYPE}" STREQUAL "STATIC_AND_SHARED" OR  "${P_TYPE}" STREQUAL "SHARED_AND_STATIC")
+		set(INSTALL_SHARED ON)
+		set(SHARED_LIB_MAME ${P_NAME})
+		fwmessage(STATUS "SHARED_LIB_MAME = ${SHARED_LIB_MAME}")
+	endif()
+		
+	# realize the apsolute path of the various installation targets
+	realize_install_path(P_BIN_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}")
+	realize_install_path(P_LIB_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}")
+	realize_install_path(P_INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_INCLUDEDIR}")
+	realize_install_path(P_CMAKE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake")
+
+	# generate paths relevant for the current library version (will be different for statis and shared lib versions
+	set(MODULE_BIN_INSTALL_DIR 		"${P_BIN_INSTALL_DIR}")
+	set(MODULE_LIB_INSTALL_DIR     	"${P_LIB_INSTALL_DIR}/${LIB_CORE_NAME}")
+	set(MODULE_INCLUDE_INSTALL_DIR 	"${P_INCLUDE_INSTALL_DIR}/${LIB_CORE_NAME}")
+	set(MODULE_CMAKE_INSTALL_DIR 	"${P_CMAKE_INSTALL_DIR}/${LIB_NAME}")
+	set(DEPENDENCY_INCLUDE_DIRS 	 ${P_DEPENDENCY_INCLUDE_DIRS})	
+
+	fwmessage(STATUS "BIN_INSTALL_DIR         = ${MODULE_BIN_INSTALL_DIR}")
+	fwmessage(STATUS "LIB_INSTALL_DIR         = ${MODULE_LIB_INSTALL_DIR}")
+	fwmessage(STATUS "INCLUDE_INSTALL_DIR     = ${MODULE_INCLUDE_INSTALL_DIR}")
+	fwmessage(STATUS "CMAKE_INSTALL_DIR       = ${MODULE_CMAKE_INSTALL_DIR}")
+	fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS = ${DEPENDENCY_INCLUDE_DIRS}")
+		
+	# Installation
+	if(INSTALL_STATIC)		
+		install (TARGETS ${STATIC_LIB_NAME}
+				 EXPORT ${STATIC_LIB_NAME}Targets
+				 RUNTIME DESTINATION ${MODULE_BIN_INSTALL_DIR} COMPONENT bin
+				 LIBRARY DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT shlib
+				 ARCHIVE DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT lib)		  
+		
+		# PDB files on windows
+		if(MSVC)
+			install(FILES "${PROJECT_BINARY_DIR}/Debug/${STATIC_LIB_NAME}d.pdb" 		 DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS Debug)
+		endif()	
+	endif()
+	
+	if(INSTALL_SHARED)	
+		install (TARGETS ${SHARED_LIB_NAME}
+				 EXPORT ${SHARED_LIB_NAME}Targets
+				 RUNTIME DESTINATION ${MODULE_BIN_INSTALL_DIR} COMPONENT bin
+				 LIBRARY DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT shlib
+				 ARCHIVE DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT lib)		  
+		
+		# PDB files on windows
+		IF(MSVC)
+			install(FILES "${PROJECT_BINARY_DIR}/Debug/${SHARED_LIB_NAME}d.pdb" 		 DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS Debug)
+			# MSVC does not generated pdb files for RelWithDebInfo woth target being a static library
+			install(FILES "${PROJECT_BINARY_DIR}/RelWithDebInfo/${SHARED_LIB_NAME}.pdb" DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS RelWithDebInfo)
+		endif()	
+	endif()
+
+	# include files
+	install_retain_dir_exclude_include(DESTINATION ${MODULE_INCLUDE_INSTALL_DIR} FILES ${P_HEADER_FILES})
+	install (FILES ${PROJECT_BINARY_DIR}/${P_NAME}_config.h DESTINATION ${MODULE_INCLUDE_INSTALL_DIR})
+
+	# Configuration handling
+	include(CMakePackageConfigHelpers)
+
+	# handle configuration
+	if(INSTALL_STATIC)			
+		install_lib_config(LIB_NAME ${STATIC_LIB_MAME} MODULE_CMAKE_INSTALL_DIR ${MODULE_CMAKE_INSTALL_DIR} DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS})
+	endif()
+	
+	if(INSTALL_SHARED)		
+		install_lib_config(LIB_NAME ${SHARED_LIB_MAME} MODULE_CMAKE_INSTALL_DIR ${MODULE_CMAKE_INSTALL_DIR} DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS})
+	endif()
 endmacro()
 
 #macro: install_executable
@@ -283,8 +411,7 @@ endmacro()
 #		create a library project including cmake config files
 #
 #	NAME <library name>						Name of the library to be generated
-# 	TYPE <type>								Either "STATIC' or 'SHARED'
-#											if "STATIC is selected the output libraru will be renamed to <NAME>_static
+# 	TYPE <type>								Either STATIC, SHARED or STATIC_AND_SHARED
 #	CXX_SOURCE_FILES 						list of c++ source files
 #	CXX_HEADER_FILES						list of c++ header files
 #	DEPENDENCY_PACKAGES						list of dependency packages (libraries with cmake config)
@@ -307,6 +434,12 @@ endmacro()
 #
 #		Note for all path input: if the distination is empty then the default GNU standard location with be used
 #							 if the specified path is relative to final output will go to <CMAKE_INSTALL_PREFIX>/<PATH>
+#
+#   Create global variables:
+#		<NAME>_BINARY_DIR		- folder containg library internal binary files
+#		<NAME>_INCLUDE_DIR		- folder containg library internal include files
+#		<NAME>_CONFIG_DIR		- folder containg library internal configuration include file
+
 macro(make_library)
     set(options "INSTALL" "CUDA")
     set(oneValueArgs NAME TYPE)
@@ -324,39 +457,50 @@ macro(make_library)
 					   CMAKE_INSTALL_DIR )
     cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )	
 
-	# select STATIC or SHARED library
-	if("${P_TYPE}" STREQUAL "STATIC")
-		set(STATIC_LIB TRUE)
-	else()
-		set(STATIC_LIB FALSE)
-	endif()
-
-	#define library name
-	set(LIB_CORE_NAME ${P_NAME})
-	if(STATIC_LIB)
-		set(LIB_NAME ${LIB_CORE_NAME}_static)
-	else()
-		set(LIB_NAME ${LIB_CORE_NAME})
-	endif()
-	
-	# generate uppercase version of lib names
-	string(TOUPPER ${LIB_CORE_NAME} LIB_CORENAME_UPPER)
-	string(TOUPPER ${LIB_NAME} 		LIB_NAME_UPPER)
-	
-	# tell what is being generated
+	# tell what is being done
 	fwmessage(STATUS "------------------------------------------------------")
-	fwmessage(STATUS "Generating ${LIB_NAME} library (core:${LIB_CORE_NAME})")	
+	fwmessage(STATUS "Generating ${P_NAME} library")	
 	fwmessage(STATUS "------------------------------------------------------")
 	
-	# locate dependencies
-	realize_package_dependencies(OUTPUT_ID PACKAGE PACKAGES ${P_DEPENDENCY_PACKAGES})
-	
-	fwmessage(STATUS "PACKAGE_INCLUDE_DIRS 	  = ${PACKAGE_INCLUDE_DIRS}")
-	fwmessage(STATUS "PACKAGE_LIBRARIES   	  = ${PACKAGE_LIBRARIES}")
+	# print input parameters
 	fwmessage(STATUS "DEPENDENCY_PACKAGES     = ${P_DEPENDENCY_PACKAGES}")
 	fwmessage(STATUS "DEPENDENCY_LIBRARIES    = ${P_DEPENDENCY_LIBRARIES}")
 	fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS = ${P_DEPENDENCY_INCLUDE_DIRS}")
 	fwmessage(STATUS "PRIVATE_INCLUDE_DIRS    = ${P_PRIVATE_INCLUDE_DIRS}")
+	
+	# set output globals
+	set(${P_NAME}_BINARY_DIR ${CMAKE_BINARY_DIR})
+	set(${P_NAME}_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+	set(${P_NAME}_CONFIG_DIR ${CMAKE_BINARY_DIR})
+	fwmessage(STATUS "${P_NAME}_BINARY_DIR    = ${${P_NAME}_BINARY_DIR}")
+	fwmessage(STATUS "${P_NAME}_INCLUDE_DIR   = ${${P_NAME}_INCLUDE_DIR}")
+	fwmessage(STATUS "${P_NAME}_CONFIG_DIR    = ${${P_NAME}_CONFIG_DIR}")
+	
+	
+	# handle library naming
+	if("${P_TYPE}" STREQUAL "STATIC" OR "${P_TYPE}" STREQUAL "STATIC_AND_SHARED" OR  "${P_TYPE}" STREQUAL "SHARED_AND_STATIC")
+		set(BUILD_STATIC ON)
+		set(STATIC_LIB_MAME ${P_NAME}_static)
+		fwmessage(STATUS "STATIC_LIB_MAME = ${STATIC_LIB_MAME}")
+		
+		realize_package_dependencies(OUTPUT_ID PACKAGE_STATIC PACKAGES ${P_DEPENDENCY_PACKAGES})
+		fwmessage(STATUS "PACKAGE_STATIC_INCLUDE_DIRS 	  = ${PACKAGE_STATIC_INCLUDE_DIRS}")
+		fwmessage(STATUS "PACKAGE_STATIC_LIBRARIES   	  = ${PACKAGE_STATIC_LIBRARIES}")
+		
+	endif()
+	
+	if("${P_TYPE}" STREQUAL "SHARED" OR "${P_TYPE}" STREQUAL "STATIC_AND_SHARED" OR  "${P_TYPE}" STREQUAL "SHARED_AND_STATIC")
+		set(BUILD_SHARED ON)
+		set(SHARED_LIB_MAME ${P_NAME})
+		fwmessage(STATUS "SHARED_LIB_MAME = ${SHARED_LIB_MAME}")
+		
+		realize_package_dependencies(OUTPUT_ID PACKAGE_SHARED PACKAGES ${P_DEPENDENCY_PACKAGES})
+		fwmessage(STATUS "PACKAGE_SHARED_INCLUDE_DIRS 	  = ${PACKAGE_SHARED_INCLUDE_DIRS}")
+		fwmessage(STATUS "PACKAGE_SHARED_LIBRARIES   	  = ${PACKAGE_SHARED_LIBRARIES}")
+	endif()
+
+	#define library name
+	set(LIB_CORE_NAME ${P_NAME})
 
 	# define project files
 	set(PROJECT_SOURCE_FILES)	# initiate PROJECT_SOURCE_FILES to empty
@@ -387,47 +531,82 @@ macro(make_library)
 	fwmessage(STATUS "H_CONFIG_IN = ${H_CONFIG_IN}")
 	configure_file(${H_CONFIG_IN} ${PROJECT_BINARY_DIR}/${LIB_CORE_NAME}_config.h)
 
-	# create the library
-	if(STATIC_LIB)
-		add_library(${LIB_NAME} STATIC ${PROJECT_SOURCE_FILES})
-	else()
-		add_library(${LIB_NAME} SHARED ${PROJECT_SOURCE_FILES})
-	endif()
-	
+	# print source files
+	fwmessage(STATUS "PROJECT_SOURCE_FILES = ${PROJECT_SOURCE_FILES}")
+
+	# define object library name
+	set(OBJECT_LIB_NAME ${P_NAME}_objlib)
+
+	# create common compiled components
+	add_library(${OBJECT_LIB_NAME} OBJECT ${PROJECT_SOURCE_FILES})
+
 	# set include and library dirs
-	target_include_directories(${LIB_NAME} PUBLIC  	${PACKAGE_INCLUDE_DIRS})		# include dirs needed for pagkages
-	target_include_directories(${LIB_NAME} PUBLIC  	${P_DEPENDENCY_INCLUDE_DIRS})	# include dirs needed by specific non packet libraries
-	target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_SOURCE_DIR})			# add project source as private
-	target_include_directories(${LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})			# add project binary as private
-	target_include_directories(${LIB_NAME} PRIVATE  ${P_PRIVATE_INCLUDE_DIRS})		# add additional private include dirs (like ./include if the project include files are not found in the root)
-			
-	target_link_libraries(${LIB_NAME} PUBLIC ${PACKAGE_LIBRARIES} ${P_DEPENDENCY_LIBRARIES})	# link resolved packages and specific input list of libraries
-	
+	target_include_directories(${OBJECT_LIB_NAME} PUBLIC   ${PACKAGE_INCLUDE_DIRS})			# include dirs needed for pagkages
+	target_include_directories(${OBJECT_LIB_NAME} PUBLIC   ${P_DEPENDENCY_INCLUDE_DIRS})	# include dirs needed by specific non packet libraries
+	target_include_directories(${OBJECT_LIB_NAME} PRIVATE  ${PROJECT_SOURCE_DIR})			# add project source as private
+	target_include_directories(${OBJECT_LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})			# add project binary as private
+	target_include_directories(${OBJECT_LIB_NAME} PRIVATE  ${P_PRIVATE_INCLUDE_DIRS})		# add additional private include dirs (like ./include if the project include files are not found in the root)
+
+	target_link_libraries(${OBJECT_LIB_NAME} PUBLIC ${P_DEPENDENCY_LIBRARIES})				# link dependency libraries
+
 	# precompiled headers
 	if(USE_PRECOMPILED_HEADERS)
-		target_precompile_headers(${LIB_NAME} PRIVATE ${HEADER_FILES})
-	endif()
+		set(RESOLVED_HEADER_FILES)
+		foreach(i IN LISTS HEADER_FILES)
+			list(APPEND RESOLVED_HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/${i}")
+		endforeach()
 	
+		fwmessage(STATUS "RESOLVED_HEADER_FILES    = ${RESOLVED_HEADER_FILES}")
+		target_precompile_headers(${OBJECT_LIB_NAME} PUBLIC ${RESOLVED_HEADER_FILES})
+	endif()
+
 	# compile options
-	target_compile_features(${LIB_NAME} PUBLIC ${CXX_COMPILER_STANDARD})
-	set_target_properties(${LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
-	if(NOT STATIC_LIB)
-		set_target_properties(${LIB_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+	target_compile_features(${OBJECT_LIB_NAME} PUBLIC ${CXX_COMPILER_STANDARD})
+	set_target_properties(${OBJECT_LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+	# generat find libraries
+	if(BUILD_SHARED)
+		add_library(${SHARED_LIB_MAME} SHARED $<TARGET_OBJECTS:${OBJECT_LIB_NAME}>)
+		
+		# shared lib config
+		target_include_directories(${SHARED_LIB_MAME} PUBLIC ${PACKAGE_SHARED_INCLUDE_DIRS})
+		target_link_libraries(${SHARED_LIB_MAME} PUBLIC ${PACKAGE_SHARED_LIBRARIES})
+		
+		# set position independent output
+		set_target_properties(${SHARED_LIB_MAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+		
+		# append d to debug libraries
+		set_property(TARGET ${SHARED_LIB_MAME} PROPERTY DEBUG_POSTFIX d)
+
+		# If using MSVC the set the debug database filename
+		if(MSVC)
+			set_property(TARGET ${SHARED_LIB_MAME} PROPERTY COMPILE_PDB_NAME_DEBUG "${SHARED_LIB_MAME}d")
+			if(NOT STATIC_LIB)
+				set_property(TARGET ${SHARED_LIB_MAME} PROPERTY COMPILE_PDB_NAME_RELWITHDEBINFO "${SHARED_LIB_MAME}")		# MSVC does not generate pdb files for static librarues in RELWITHDEBINFO
+			endif()
+		endif()
+		
 	endif()
 	
-	# set target properties
-	set_target_properties(${LIB_NAME} PROPERTIES VERSION "${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}.${CMAKE_PROJECT_VERSION_PATCH}")
+	if(BUILD_STATIC)
+		add_library(${STATIC_LIB_MAME} STATIC $<TARGET_OBJECTS:${OBJECT_LIB_NAME}>)
+		
+		# static lib config
+		target_include_directories(${STATIC_LIB_MAME} PUBLIC ${PACKAGE_STATIC_INCLUDE_DIRS})
+		target_link_libraries(${STATIC_LIB_MAME} PUBLIC ${PACKAGE_STATIC_LIBRARIES})
+		
+		# append d to debug libraries
+		set_property(TARGET ${STATIC_LIB_MAME} PROPERTY DEBUG_POSTFIX d)
 
-	# append d to debug libraries
-	set_property(TARGET ${LIB_NAME} PROPERTY DEBUG_POSTFIX d)
-
-	# If using MSVC the set the debug database filename
-	IF(MSVC)
-		set_property(TARGET ${LIB_NAME} PROPERTY COMPILE_PDB_NAME_DEBUG "${LIB_NAME}d")
-		if(NOT STATIC_LIB)
-			set_property(TARGET ${LIB_NAME} PROPERTY COMPILE_PDB_NAME_RELWITHDEBINFO "${LIB_NAME}")		# MSVC does not generate pdb files for static librarues in RELWITHDEBINFO
+		# If using MSVC the set the debug database filename
+		if(MSVC)
+			set_property(TARGET ${STATIC_LIB_MAME} PROPERTY COMPILE_PDB_NAME_DEBUG "${STATIC_LIB_MAME}d")
+			if(NOT STATIC_LIB)
+				set_property(TARGET ${STATIC_LIB_MAME} PROPERTY COMPILE_PDB_NAME_RELWITHDEBINFO "${STATIC_LIB_MAME}")		# MSVC does not generate pdb files for static librarues in RELWITHDEBINFO
+			endif()
 		endif()
-	ENDIF()
+		
+	endif()
 
 	#handle installation
 	if(P_INSTALL)
@@ -564,12 +743,11 @@ macro(make_executable)
 	endif()    
 endmacro()
 
-# macro: make_tests
+# macro: make_library_tests
 #		create a standard unit test project
 #
-#	LIB_NAME <name of library for which the unit tests are made>
+#	LIB_NAME <name> 						name of library for which the unit tests are made
 #	TEST_MASK <mask>						file search mask for finding test source files (typically "*_test.cpp")
-#	LIBTEST_CONFIG_DIR						folder where library configuration include file is located (within parent source tree)
 #	DEPENDENCY_PACKAGES						list of dependency packages (libraries with cmake config)
 #	DEPENDENCY_LIBRARIES							list of library dependencies (libraries without cmake config)
 #	DEPENDENCY_INCLUDE_DIRS					list of filters containg includefiles needed by the library
@@ -579,10 +757,10 @@ endmacro()
 #		CUDA					if set CUDA support will be enabled
 
 #
-macro(make_tests)
+macro(make_library_tests)
 
 set(options "CUDA")
-    set(oneValueArgs LIB_NAME TEST_MASK LIBTEST_CONFIG_DIR)
+    set(oneValueArgs LIB_NAME TEST_MASK)
     set(multiValueArgs DEPENDENCY_PACKAGES 
 					   DEPENDENCY_LIBRARIES 
 					   DEPENDENCY_INCLUDE_DIRS
@@ -600,21 +778,10 @@ set(options "CUDA")
 	enable_testing ()
 
 	OPTION (USE_EXTERNAL_CATCH2_INSTALL "If set use an external version of the catch2 test environment" ON)
-
-	# determine static vs shared linking
-	# options
-	if(BUILD_STATIC_LIB AND BUILD_SHARED_LIB)
-		OPTION (LINK_TESTS_AGINAST_STATIC "Lisk test unit tests against the static version of ${P_LIB_NAME}" ON)
-	else()
-		if(BUILD_STATIC_LIB)
-			set(LINK_TESTS_AGINAST_STATIC ON)
-		else()
-			set(LINK_TESTS_AGINAST_STATIC OFF)
-		endif()
-	endif()
-
+	OPTION (LINK_TESTS_AGAINST_STATIC "Link unit tests against static version of library" ON)
+	
 	# determine which library to link against
-	if(LINK_TESTS_AGINAST_STATIC)
+	if(LINK_TESTS_AGAINST_STATIC)
 		set(LIB_NAME ${P_LIB_NAME}_static)
 	else()
 		set(LIB_NAME ${P_LIB_NAME})
@@ -643,6 +810,14 @@ set(options "CUDA")
 		FetchContent_MakeAvailable(Catch2)
 	endif()
 
+	# set up test include and link configuration
+	set(TEST_LIBRARIES ${P_DEPENDENCY_LIBRARIES})
+	list(APPEND TEST_LIBRARIES ${LIB_NAME})
+	fwmessage(STATUS "TEST_LIBRARIES   = ${TEST_LIBRARIES}")
+	
+	set(TEST_INCLUDE_DIRS ${LIB_INCLUDE_DIR})	
+	list(APPEND TEST_INCLUDE_DIRS ${P_DEPENDENCY_INCLUDE_DIRS})
+
 	# find the test source files
 	file(GLOB TEST_SOURCE_FILES RELATIVE  ${CMAKE_CURRENT_SOURCE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/${P_TEST_MASK}")
 	fwmessage(STATUS "Found test source files    = ${TEST_SOURCE_FILES}")
@@ -650,7 +825,7 @@ set(options "CUDA")
 	if(P_CUDA)
 		make_executable(NAME tests 
 						CXX_SOURCE_FILES ${TEST_SOURCE_FILES}
-						DEPENDENCY_PACKAGES ${P_DEPENDENCY_PACKAGES} ${LIB_NAME} 
+						DEPENDENCY_PACKAGES ${P_DEPENDENCY_PACKAGES}
 						DEPENDENCY_LIBRARIES ${P_DEPENDENCY_LIBRARIES}
 						DEPENDENCY_INCLUDE_DIRS ${P_DEPENDENCY_INCLUDE_DIRS}
 						PRIVATE_INCLUDE_DIRS ${P_PRIVATE_INCLUDE_DIRS}
@@ -662,16 +837,24 @@ set(options "CUDA")
 	else()
 		make_executable(NAME tests 
 						CXX_SOURCE_FILES ${TEST_SOURCE_FILES}
-						DEPENDENCY_PACKAGES ${P_DEPENDENCY_PACKAGES} ${LIB_NAME}
+						DEPENDENCY_PACKAGES ${P_DEPENDENCY_PACKAGES}
 						DEPENDENCY_LIBRARIES ${P_DEPENDENCY_LIBRARIES}
 						DEPENDENCY_INCLUDE_DIRS ${P_DEPENDENCY_INCLUDE_DIRS}
 						PRIVATE_INCLUDE_DIRS ${P_PRIVATE_INCLUDE_DIRS}
 						)
 	endif()
-							
-	target_include_directories(tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/.. ${PROJECT_BINARY_DIR} ${P_DEPENDENCY_INCLUDE_DIRS} ${P_LIBTEST_CONFIG_DIR})
-	target_link_libraries(tests Catch2::Catch2)
-
+	
+	set_target_properties(tests PROPERTIES DISABLE_PRECOMPILE_HEADERS ON)
+	
+	#if(USE_PRECOMPILED_HEADERS)
+	#	target_precompile_headers(tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../include/${P_LIB_NAME}.h)
+	#endif()
+	
+	# add links to target library
+	target_include_directories(tests PRIVATE ${${P_LIB_NAME}_INCLUDE_DIR} ${${P_LIB_NAME}_CONFIG_DIR} ${PROJECT_BINARY_DIR})
+	target_link_directories(tests PRIVATE ${${P_LIB_NAME}_BINARY_DIR})
+	target_link_libraries(tests Catch2::Catch2 ${LIB_NAME})
+	
 	# work around for internal catch2 installation
 	if(NOT USE_EXTERNAL_CATCH2_INSTALL)
 		list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
