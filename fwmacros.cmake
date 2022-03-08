@@ -18,7 +18,154 @@ include(fwlib_options)
 include(fwcompiler)
 
 
+# macro: realize_package_dependency
+#		find and activate specific package dependency
+#
+# realize_package_dependency(PREFER_STATIC <bool> OUTPUT_ID <name> PACKAGE <package name string>)
+#
+# REQUIRED			if set the package is required
+# PREFER_STATIC		if option set the macro will look for the static version of the package before the shared version (else the other way around)
+# OUTPUT_ID  	the macro will generate two variables named <OUTPUT_ID>_INCLUDE_DIRS and <OUTPUT_ID>_LIBRARIES  containg the resolved package info
+# PACKAGE     	the name of the package to be resolved
+#                packages with submodules can be accessed using the syntax: <package name>[<sub1>,<sub2>,...,<subN>]
+#
+# example realize_package_dependencies(OUTPUT_ID LIBS PACKAGES fwstdlib Qt5[core,widgets]
+macro(realize_package_dependency)
+	set(options )
+    set(oneValueArgs "OUTPUT_ID" "PACKAGE" "PREFER_STATIC" "REQUIRED")
+    set(multiValueArgs )
+    cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )	
 
+	fwmessage(STATUS "--- realize_package_dependency ---")
+	fwmessage(STATUS "Resolving package ${P_PACKAGE}")
+	fwmessage(STATUS "   OUTPUT_ID     = ${P_OUTPUT_ID}")
+	fwmessage(STATUS "   PREFER_STATIC = ${P_PREFER_STATIC}")
+	fwmessage(STATUS "   PACKAGE        = ${P_PACKAGE}")
+	
+	# initiate output to fail
+	set(${P_OUTPUT_ID}_LIBRARIES )
+	set(${P_OUTPUT_ID}_INCLUDE_DIRS )
+	set(${P_OUTPUT_ID}_FOUND OFF )
+	
+	string(FIND ${P_PACKAGE} "[" pos)
+	if(pos EQUAL -1)
+		fwmessage(STATUS "    - Simple package")
+		set(CORE_PACKAGE ${P_PACKAGE})
+		set(STATIC_NAME ${CORE_PACKAGE}_static)
+		set(SHARED_NAME ${CORE_PACKAGE})
+		
+		if(P_PREFER_STATIC)
+			fwmessage(STATUS "    - looking for static: ${STATIC_NAME}")
+			find_package(${STATIC_NAME})
+			if(${STATIC_NAME}_FOUND)
+				fwmessage(STATUS "    - found static version of ${CORE_PACKAGE}")
+				set(${P_OUTPUT_ID}_LIBRARIES ${${STATIC_NAME}_LIBRARIES})
+				set(${P_OUTPUT_ID}_INCLUDE_DIRS ${${STATIC_NAME}_INCLUDE_DIRS})
+				set(${P_OUTPUT_ID}_FOUND ON)		
+			else()
+				fwmessage(STATUS "    - static not found then try shared")
+				find_package(${SHARED_NAME})
+				if(${SHARED_NAME}_FOUND)
+					fwmessage(STATUS "    - found shared version of ${CORE_PACKAGE}")
+					set(${P_OUTPUT_ID}_LIBRARIES ${${SHARED_NAME}_LIBRARIES})
+					set(${P_OUTPUT_ID}_INCLUDE_DIRS ${${SHARED_NAME}_INCLUDE_DIRS})
+					set(${P_OUTPUT_ID}_FOUND ON)						
+				endif()
+			endif()
+			
+		else()
+			fwmessage(STATUS "   - looking for shared: ${SHARED_NAME}")
+			find_package(${SHARED_NAME})
+			if(${SHARED_NAME}_FOUND)
+				fwmessage(STATUS "    - found shared version of ${CORE_PACKAGE}")
+				set(${P_OUTPUT_ID}_LIBRARIES ${${SHARED_NAME}_LIBRARIES})
+				set(${P_OUTPUT_ID}_INCLUDE_DIRS ${${SHARED_NAME}_INCLUDE_DIRS})
+				set(${P_OUTPUT_ID}_FOUND ON)		
+			else()
+				fwmessage(STATUS "    - static not found then try static")
+				find_package(${STATIC_NAME})
+				if(${STATIC_NAME}_FOUND)
+					fwmessage(STATUS "    - found static version of ${CORE_PACKAGE}")
+					set(${P_OUTPUT_ID}_LIBRARIES ${${STATIC_NAME}_LIBRARIES})
+					set(${P_OUTPUT_ID}_INCLUDE_DIRS ${${STATIC_NAME}_INCLUDE_DIRS})
+					set(${P_OUTPUT_ID}_FOUND ON)						
+				endif()
+			endif()
+		endif()
+	
+	else()
+		fwmessage(STATUS "    - package with components")
+	
+		# parse component list
+		string(LENGTH "${P_PACKAGE}" len)
+		string(SUBSTRING "${P_PACKAGE}" 0 ${pos} CORE_PACKAGE)
+		string(SUBSTRING "${P_PACKAGE}" ${pos}+1 ${len}  MODULES)
+		string(STRIP "${MODULES}" MODULES)
+		string(REGEX REPLACE "[\]\[]" "" MODULES "${MODULES}")
+		string(REGEX REPLACE "[,]" ";" MODULES "${MODULES}")
+	
+		fwmessage(STATUS "    - CORE_PACKAGE = ${CORE_PACKAGE}")
+		fwmessage(STATUS "    - MODULES      = ${MODULES}")
+		
+		if(P_PREFER_STATIC)
+			fwmessage(STATUS "    - looking for static: ${STATIC_NAME}")
+			find_package(${STATIC_NAME} COMPONENTS ${MODULES})
+			if(${STATIC_NAME}_FOUND)
+				fwmessage(STATUS "    - found static version of ${CORE_PACKAGE}")				
+				foreach(sub IN LISTS MODULES)		
+					list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${${STATIC_NAME}}${sub}_LIBRARIES})				
+					list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${${STATIC_NAME}}${sub}_INCLUDE_DIRS})					
+				endforeach()
+				set(${P_OUTPUT_ID}_FOUND ON)
+			else()
+				fwmessage(STATUS "    - static not found then try shared")
+				find_package(${SHARED_NAME} COMPONENTS ${MODULES})
+				if(${SHARED_NAME}_FOUND)
+					fwmessage(STATUS "    - found shared version of ${CORE_PACKAGE}")
+					foreach(sub IN LISTS MODULES)		
+						list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${${SHARED_NAME}}${sub}_LIBRARIES})				
+						list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${${SHARED_NAME}}${sub}_INCLUDE_DIRS})					
+					endforeach()
+					set(${P_OUTPUT_ID}_FOUND ON)						
+				endif()
+			endif()
+			
+		else()
+			fwmessage(STATUS "   - looking for shared: ${SHARED_NAME}")
+			find_package(${SHARED_NAME} COMPONENTS ${MODULES})
+			if(${SHARED_NAME}_FOUND)
+				fwmessage(STATUS "    - found shared version of ${CORE_PACKAGE}")
+				foreach(sub IN LISTS MODULES)		
+					list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${${SHARED_NAME}}${sub}_LIBRARIES})				
+					list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${${SHARED_NAME}}${sub}_INCLUDE_DIRS})					
+				endforeach()
+				set(${P_OUTPUT_ID}_FOUND ON)		
+			else()
+				fwmessage(STATUS "    - static not found then try static")
+				find_package(${STATIC_NAME} COMPONENTS ${MODULES})
+				if(${STATIC_NAME}_FOUND)
+					fwmessage(STATUS "    - found static version of ${CORE_PACKAGE}")
+					foreach(sub IN LISTS MODULES)		
+						list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${${STATIC_NAME}}${sub}_LIBRARIES})				
+						list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${${STATIC_NAME}}${sub}_INCLUDE_DIRS})					
+					endforeach()
+					set(${P_OUTPUT_ID}_FOUND ON)						
+				endif()
+			endif()
+		endif()
+	
+	endif()
+	
+	fwmessage(STATUS "    - ${P_OUTPUT_ID}_LIBRARIES	= ${${P_OUTPUT_ID}_LIBRARIES}")
+	fwmessage(STATUS "    - ${P_OUTPUT_ID}_INCLUDE_DIRS	= ${${P_OUTPUT_ID}_INCLUDE_DIRS}")
+	fwmessage(STATUS "    - ${P_OUTPUT_ID}_FOUND	    = ${${P_OUTPUT_ID}_FOUND}")
+	fwmessage(STATUS "Done resolving package ${P_PACKAGE}")
+	
+	# throw hard failure if requested
+	if(NOT ${P_OUTPUT_ID}_FOUND AND P_REQUIRED)
+		message(FATAL_ERROR "Cannot find package ${P_PACKAGE}")
+	endif()		
+endmacro()
 
 # macro: realize_package_dependencies
 #		find and activate a list of dependency packages (libraries with assicuate cmake config)
@@ -32,110 +179,45 @@ include(fwcompiler)
 #
 # example realize_package_dependencies(OUTPUT_ID LIBS PACKAGES fwstdlib Qt5[core,widgets]
 macro(realize_package_dependencies)
-	set(options "PREFER_STATIC")
-    set(oneValueArgs "OUTPUT_ID")
+	set(options )
+    set(oneValueArgs "OUTPUT_ID" "PREFER_STATIC" "REQUIRED")
     set(multiValueArgs "PACKAGES")
     cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )	
+
+	set(DEP_OUT_ID ${P_OUTPUT_ID})
+
+	fwmessage(STATUS "--- realize_package_dependencies ---")
+
+	fwmessage(STATUS "P_OUTPUT_ID   	= ${DEP_OUT_ID}")
+	fwmessage(STATUS "P_PREFER_STATIC   = ${P_PREFER_STATIC}")
+	fwmessage(STATUS "P_REQUIRED   		= ${P_REQUIRED}")
 
 	set(${P_OUTPUT_ID}_INCLUDE_DIRS)
 	set(${P_OUTPUT_ID}_LIBRARIES)
 
 
-	foreach(pck IN LISTS P_PACKAGES)	
-		# set found to FALSE
-		set(P_FOUND OFF)
+	foreach(pck IN LISTS P_PACKAGES)
+		fwmessage(STATUS "Resolving package dependency: ${pck}")
 	
-		# look for component identifier character '['
-		string(FIND ${pck} "[" pos)
-		if(pos EQUAL -1)
-			# Simple package search
-			if(P_PREFER_STATIC)
-				find_package(${pck}_static)	
-				if(${pck}_static_FOUND)
-					list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${pck}_static_INCLUDE_DIRS})
-					list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${pck}_static_LIBRARIES})
-					set(P_FOUND ON)
-				else()
-					find_package(${pck})	
-					if(${pck}_FOUND)
-						list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${pck}_INCLUDE_DIRS})
-						list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${pck}_LIBRARIES})
-						set(P_FOUND ON)
-					endif()
-				endif()
-			else()
-				find_package(${pck})	
-				if(${pck}_FOUND)
-					list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${pck}_INCLUDE_DIRS})
-					list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${pck}_LIBRARIES})
-					set(P_FOUND ON)
-				else()
-					find_package(${pck}_static)	
-					if(${pck}_FOUND)
-						list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${pck}_static_INCLUDE_DIRS})
-						list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${pck}_static_LIBRARIES})
-						set(P_FOUND ON)
-					endif()
-				endif()
-			endif()
-		else()			
-			# Component package search
-			string(LENGTH "${pck}" len)
-			string(SUBSTRING "${pck}" 0 ${pos} CORE_PACKAGE)
-			string(SUBSTRING "${pck}" ${pos}+1 ${len}  MODULES)
-			string(STRIP "${MODULES}" MODULES)
-			string(REGEX REPLACE "[\]\[]" "" MODULES "${MODULES}")
-			string(REGEX REPLACE "[,]" ";" MODULES "${MODULES}")		
-		
-			if(P_PREFER_STATIC)
-				find_package(${CORE_PACKAGE}_static COMPONENTS ${MODULES})	
-				if(${CORE_PACKAGE}_static_FOUND)
-					foreach(sub IN LISTS MODULES)		
-						list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${CORE_PACKAGE}_static${sub}_INCLUDE_DIRS})
-						list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${CORE_PACKAGE}_static${sub}_LIBRARIES})				
-					endforeach()
-					set(P_FOUND ON)
-				else()
-					find_package(${CORE_PACKAGE} COMPONENTS ${MODULES})	
-					if(${CORE_PACKAGE}_FOUND)
-						foreach(sub IN LISTS MODULES)		
-							list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${CORE_PACKAGE}${sub}_INCLUDE_DIRS})
-							list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${CORE_PACKAGE}${sub}_LIBRARIES})				
-						endforeach()
-						set(P_FOUND ON)
-					endif()
-				endif()
-			else()
-				find_package(${CORE_PACKAGE} COMPONENTS ${MODULES})	
-				if(${CORE_PACKAGE}_FOUND)
-					foreach(sub IN LISTS MODULES)		
-						list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${CORE_PACKAGE}${sub}_INCLUDE_DIRS})
-						list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${CORE_PACKAGE}${sub}_LIBRARIES})				
-					endforeach()
-					set(P_FOUND ON)
-				else()
-					find_package(${CORE_PACKAGE}_static COMPONENTS ${MODULES})	
-					if(${CORE_PACKAGE}_static_FOUND)
-						foreach(sub IN LISTS MODULES)		
-							list(APPEND ${P_OUTPUT_ID}_INCLUDE_DIRS ${${CORE_PACKAGE}_static${sub}_INCLUDE_DIRS})
-							list(APPEND ${P_OUTPUT_ID}_LIBRARIES    ${${CORE_PACKAGE}_static${sub}_LIBRARIES})				
-						endforeach()
-						set(P_FOUND ON)
-					endif()
-				endif()
-			endif()		
+		realize_package_dependency(OUTPUT_ID PC PREFER_STATIC ${P_PREFER_STATIC} REQUIRED ${P_REQUIRED} PACKAGE ${pck})
+	
+		if(PC_FOUND)			
+			list(APPEND ${DEP_OUT_ID}_LIBRARIES ${PC_LIBRARIES})
+			list(APPEND ${DEP_OUT_ID}_INCLUDE_DIRS ${PC_INCLUDE_DIRS})
 		endif()	
-
-		if(NOT P_FOUND)
-			message(FATAL_ERROR "Cannot resolve dependency package ${pck}")
-		endif()		
+		
+		fwmessage(STATUS "DEP_OUT_ID = ${DEP_OUT_ID}")
+		fwmessage(STATUS "${DEP_OUT_ID}_LIBRARIES  = ${${DEP_OUT_ID}_LIBRARIES}")
+		fwmessage(STATUS "${DEP_OUT_ID}_INCLUDE_DIRS   = ${${DEP_OUT_ID}_INCLUDE_DIRS}")
 	endforeach()
 	
-	list(REMOVE_DUPLICATES ${P_OUTPUT_ID}_INCLUDE_DIRS)
-	list(REMOVE_DUPLICATES ${P_OUTPUT_ID}_LIBRARIES)	
+	list(REMOVE_DUPLICATES ${DEP_OUT_ID}_INCLUDE_DIRS)
+	list(REMOVE_DUPLICATES ${DEP_OUT_ID}_LIBRARIES)	
 	
-	fwmessage(STATUS "${P_OUTPUT_ID}_INCLUDE_DIRS = ${${P_OUTPUT_ID}_INCLUDE_DIRS}")
-	fwmessage(STATUS "${P_OUTPUT_ID}_LIBRARIES = ${${P_OUTPUT_ID}_LIBRARIES}")
+	fwmessage(STATUS "${DEP_OUT_ID}_INCLUDE_DIRS = ${${DEP_OUT_ID}_INCLUDE_DIRS}")
+	fwmessage(STATUS "${DEP_OUT_ID}_LIBRARIES = ${${DEP_OUT_ID}_LIBRARIES}")
+	
+	fwmessage(STATUS "Done realize_package_dependencies")
 endmacro()
 
 # macro: realize_install_path
@@ -252,10 +334,10 @@ macro(install_lib_config)
 	# Install the library config and version files
 	install(FILES  	"${PROJECT_BINARY_DIR}/${CONFIG_FILE}"
 					"${PROJECT_BINARY_DIR}/${VERSION_FILE}"
-					DESTINATION "${MODULE_CMAKE_INSTALL_DIR}" COMPONENT dev)
+					DESTINATION "${MODULE_CMAKE_INSTALL_DIR}/${P_LIB_NAME}" COMPONENT dev)
 
 	# Install the export set for use with the install-tree
-	install(EXPORT ${P_LIB_NAME}Targets DESTINATION "${P_MODULE_CMAKE_INSTALL_DIR}" COMPONENT dev)	
+	install(EXPORT ${P_LIB_NAME}Targets DESTINATION "${P_MODULE_CMAKE_INSTALL_DIR}/${P_LIB_NAME}" COMPONENT dev)	
 	
 	# print finished message
 	fwmessage(STATUS "done install lib config for library: ${P_LIB_NAME}")	
@@ -317,7 +399,7 @@ macro(install_library)
 	set(MODULE_BIN_INSTALL_DIR 		"${P_BIN_INSTALL_DIR}")
 	set(MODULE_LIB_INSTALL_DIR     	"${P_LIB_INSTALL_DIR}/${P_NAME}")
 	set(MODULE_INCLUDE_INSTALL_DIR 	"${P_INCLUDE_INSTALL_DIR}/${P_NAME}")
-	set(MODULE_CMAKE_INSTALL_DIR 	"${P_CMAKE_INSTALL_DIR}/${P_NAME}")
+	set(MODULE_CMAKE_INSTALL_DIR 	"${P_CMAKE_INSTALL_DIR}")
 	set(DEPENDENCY_INCLUDE_DIRS 	 ${P_DEPENDENCY_INCLUDE_DIRS})	
 
 	fwmessage(STATUS "BIN_INSTALL_DIR         = ${MODULE_BIN_INSTALL_DIR}")
@@ -356,8 +438,6 @@ macro(install_library)
 
 	# Configuration handling
 	include(CMakePackageConfigHelpers)
-
-	fwmessage(STATUS "qqqqqqqqMODULE_CMAKE_INSTALL_DIR    = ${MODULE_CMAKE_INSTALL_DIR}")
 
 	# handle configuration
 	if(INSTALL_STATIC)			
@@ -483,7 +563,7 @@ macro(make_library)
 		set(STATIC_LIB_MAME ${P_NAME}_static)
 		fwmessage(STATUS "STATIC_LIB_MAME = ${STATIC_LIB_MAME}")
 		
-		realize_package_dependencies(OUTPUT_ID PACKAGE_STATIC PACKAGES ${P_DEPENDENCY_PACKAGES})
+		realize_package_dependencies(PREFER_STATIC ON OUTPUT_ID PACKAGE_STATIC PACKAGES ${P_DEPENDENCY_PACKAGES})
 		fwmessage(STATUS "PACKAGE_STATIC_INCLUDE_DIRS 	  = ${PACKAGE_STATIC_INCLUDE_DIRS}")
 		fwmessage(STATUS "PACKAGE_STATIC_LIBRARIES   	  = ${PACKAGE_STATIC_LIBRARIES}")
 		
@@ -494,7 +574,7 @@ macro(make_library)
 		set(SHARED_LIB_MAME ${P_NAME})
 		fwmessage(STATUS "SHARED_LIB_MAME = ${SHARED_LIB_MAME}")
 		
-		realize_package_dependencies(OUTPUT_ID PACKAGE_SHARED PACKAGES ${P_DEPENDENCY_PACKAGES})
+		realize_package_dependencies(PREFER_STATIC OFF OUTPUT_ID PACKAGE_SHARED PACKAGES ${P_DEPENDENCY_PACKAGES})
 		fwmessage(STATUS "PACKAGE_SHARED_INCLUDE_DIRS 	  = ${PACKAGE_SHARED_INCLUDE_DIRS}")
 		fwmessage(STATUS "PACKAGE_SHARED_LIBRARIES   	  = ${PACKAGE_SHARED_LIBRARIES}")
 	endif()
@@ -653,13 +733,18 @@ macro(make_executable)
 	# grap the exe name
 	set(EXE_NAME ${P_NAME})	
 	
+	OPTION (LINK_TESTS_AGAINST_STATIC "Link unit tests against static version of library" ON)
+	
 	# tell what is being generated
 	fwmessage(STATUS "------------------------------------------------------")
 	fwmessage(STATUS "Generating ${EXE_NAME} executable")	
 	fwmessage(STATUS "------------------------------------------------------")
 	
 	# locate dependencies
-	realize_package_dependencies(OUTPUT_ID PACKAGE PACKAGES ${P_DEPENDENCY_PACKAGES})
+	realize_package_dependencies(OUTPUT_ID PACKAGE PREFER_STATIC ${LINK_TESTS_AGAINST_STATIC} PACKAGES ${P_DEPENDENCY_PACKAGES})
+	fwmessage(STATUS "PACKAGE_STATIC_INCLUDE_DIRS 	  = ${PACKAGE_STATIC_INCLUDE_DIRS}")
+	fwmessage(STATUS "PACKAGE_STATIC_LIBRARIES   	  = ${PACKAGE_STATIC_LIBRARIES}")
+	
 	
 	fwmessage(STATUS "CXX_SOURCE_FILES 	  	  = ${P_CXX_SOURCE_FILES}")
 	fwmessage(STATUS "CXX_HEADER_FILES 	  	  = ${P_CXX_HEADER_FILES}")
