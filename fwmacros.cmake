@@ -200,6 +200,9 @@ macro(install_lib_config)
     set(multiValueArgs)
     cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )	
 
+	# set the global var LIB_NAME (used by config file expansion so it must exist!
+	set(LIB_NAME ${P_LIB_NAME})
+
 	# tell what is being done
 	fwmessage(STATUS "------------------------------------------------------")
 	fwmessage(STATUS "install lib config for library: ${P_LIB_NAME}")	
