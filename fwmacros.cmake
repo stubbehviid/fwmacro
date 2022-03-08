@@ -255,7 +255,7 @@ macro(install_lib_config)
 					DESTINATION "${MODULE_CMAKE_INSTALL_DIR}" COMPONENT dev)
 
 	# Install the export set for use with the install-tree
-	#install(EXPORT ${P_LIB_NAME}Targets DESTINATION "${P_MODULE_CMAKE_INSTALL_DIR}" COMPONENT dev)	
+	install(EXPORT ${P_LIB_NAME}Targets DESTINATION "${P_MODULE_CMAKE_INSTALL_DIR}" COMPONENT dev)	
 	
 	# print finished message
 	fwmessage(STATUS "done install lib config for library: ${P_LIB_NAME}")	
