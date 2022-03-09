@@ -217,7 +217,7 @@ macro(realize_package_dependencies)
 	fwmessage(STATUS "${DEP_OUT_ID}_INCLUDE_DIRS = ${${DEP_OUT_ID}_INCLUDE_DIRS}")
 	fwmessage(STATUS "${DEP_OUT_ID}_LIBRARIES = ${${DEP_OUT_ID}_LIBRARIES}")
 	
-	fwmessage(STATUS "Done realize_package_dependencies")
+	fwmessage(STATUS "--- Done realize_package_dependencies")
 endmacro()
 
 # macro: realize_install_path
@@ -263,108 +263,33 @@ macro(install_retain_dir_exclude_include)
 			list(POP_FRONT PATH_LIST PATH_LIST)					# remove first entry in list if number of elements in path > 1 (we do not want to delete the filename itself)
 			list(JOIN PATH_LIST "/" SFILE)						# list back to path
 		endif()
+			
 		get_filename_component(DIR ${SFILE} DIRECTORY)		# extract the relative sub folder to use as destination
-		# message(STATUS "FILE:${FILE}   ->   DIR=${CAS_DESTINATION}/${DIR}")
+		fwmessage(STATUS "FILE:${FILE}   ->   DIR=${CAS_DESTINATION}/${DIR}")
         install(FILES ${FILE} DESTINATION ${CAS_DESTINATION}/${DIR})	# install the file
     endforeach()
 endmacro()
 
-#macro: install_lib_config
-#		Handle the installation of the cmake libration config files
-#
-#	LIB_NAME 					<library name>
-#	MODULE_CMAKE_INSTALL_DIR	<directory where the cmake files are to be installed
-#
-macro(install_lib_config)
-	# parse input
-    set(options "")
-    set(oneValueArgs LIB_NAME MODULE_CMAKE_INSTALL_DIR DEPENDENCY_INCLUDE_DIRS)
-    set(multiValueArgs)
-    cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )	
-
-	# set the global var LIB_NAME (used by config file expansion so it must exist!
-	set(LIB_NAME ${P_LIB_NAME})
-
-	# tell what is being done
-	fwmessage(STATUS "------------------------------------------------------")
-	fwmessage(STATUS "install lib config for library: ${P_LIB_NAME}")	
-	fwmessage(STATUS "------------------------------------------------------")
-	fwmessage(STATUS "LIB_NAME                 = ${P_LIB_NAME}")
-	
-	# handle configuration
-	set(CONFIG_FILE "${P_LIB_NAME}Config.cmake")
-	set(VERSION_FILE "${P_LIB_NAME}ConfigVersion.cmake")
-	set(TARGETS_FILE "${P_LIB_NAME}Targets.cmake")
-	set(MODULE_CMAKE_INSTALL_DIR ${P_MODULE_CMAKE_INSTALL_DIR})
-	set(DEPENDENCY_INCLUDE_DIRS ${P_DEPENDENCY_INCLUDE_DIRS})
-
-	
-	fwmessage(STATUS "generating ${CONFIG_FILE}")
-	fwmessage(STATUS "generating ${VERSION_FILE}")
-	fwmessage(STATUS "generating ${TARGETS_FILE}")
-	fwmessage(STATUS "MODULE_CMAKE_INSTALL_DIR = ${MODULE_CMAKE_INSTALL_DIR}")
-	fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS  = ${DEPENDENCY_INCLUDE_DIRS}")
-	
-
-	# Add all targets to the build-tree export set
-	export(TARGETS ${P_LIB_NAME} FILE "${PROJECT_BINARY_DIR}/${TARGETS_FILE}")
-
-	# Export the package for use from the build-tree
-	# (this registers the build-tree with a global CMake-registry)
-	export(PACKAGE ${P_LIB_NAME})
-
-	# locate a template for the config file (will use libConfig.cmake.in in projetc root if existing then fall back to the global default in cmake 
-	find_file(LIB_CONFIG_IN libConfig.cmake.in PATHS ${CMAKE_CURRENT_SOURCE_PATH} ${CMAKE_MODULE_PATH})
-	fwmessage(STATUS "LIB_CONFIG_IN = ${LIB_CONFIG_IN}")
-
-	# make sure that DEPENDENCY_INCLUDE_DIRS exists
-	if("${DEPENDENCY_INCLUDE_DIRS}" STREQUAL "")
-		set(DEPENDENCY_INCLUDE_DIRS " ")
-	endif()
-
-	# generate the cmake configuration
-	configure_package_config_file(${LIB_CONFIG_IN} ${PROJECT_BINARY_DIR}/${CONFIG_FILE}	INSTALL_DESTINATION ${MODULE_CMAKE_INSTALL_DIR}
-	                          PATH_VARS MODULE_INCLUDE_INSTALL_DIR DEPENDENCY_INCLUDE_DIRS)
-
-	# lgenerate version cmake file
-	write_basic_package_version_file( ${PROJECT_BINARY_DIR}/${VERSION_FILE}
-								  VERSION ${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}.${CMAKE_PROJECT_VERSION_PATCH}
-								  COMPATIBILITY AnyNewerVersion )
-
-	# Install the library config and version files
-	install(FILES  	"${PROJECT_BINARY_DIR}/${CONFIG_FILE}"
-					"${PROJECT_BINARY_DIR}/${VERSION_FILE}"
-					DESTINATION "${MODULE_CMAKE_INSTALL_DIR}/${P_LIB_NAME}" COMPONENT dev)
-
-	# Install the export set for use with the install-tree
-	install(EXPORT ${P_LIB_NAME}Targets DESTINATION "${P_MODULE_CMAKE_INSTALL_DIR}/${P_LIB_NAME}" COMPONENT dev)	
-	
-	# print finished message
-	fwmessage(STATUS "done install lib config for library: ${P_LIB_NAME}")	
-endmacro()
-
-
-
 #macro: install_library
 #		Utility macro for handling the installation of libraries
 #
+#	CORE_NAME 				<core library name>
 #	NAME 					<library name>
-#	TYPE					<library type   STATIC, SHARED or STATIC_AND_SHARED>
 #	HEADER_FILES			<list of c++ header files to be installed>
-#	DEPENDENCY_INCLUDE_DIRS	<list of dependenct include directories that shoudl be included in the cmake config>
 #	BIN_INSTALL_DIR			where to install binary executables <final destination will be <BIN_INSTALL_DIR>
 #	LIB_INSTALL_DIR 		where to install library files <final destination will be <LIB_INSTALL_DIR>/<NAME>
 #	INCLUDE_INSTALL_DIR 	where to install include files <final destination will be <INCLUDE_INSTALL_DIR>/<NAME>
 #	CMAKE_INSTALL_DIR		where to install cmake config files <final destination will be <CMAKE_INSTALL_DIR>/<NAME>
 #
+#	INSTALL_PDB				if set and on WIN32 the debug PDB files will be installed
+
 #	Note for all path input: if the distination is empty then the default GNU standard location with be used
 #							 if the specified path is relative to final output will go to <CMAKE_INSTALL_PREFIX>/<PATH>
 macro(install_library)
 	# parse input
-    set(options "")
-    set(oneValueArgs NAME TYPE)
+    set(options "INSTALL_PDB")
+    set(oneValueArgs CORE_NAME NAME )
     set(multiValueArgs HEADER_FILES
-					   DEPENDENCY_INCLUDE_DIRS
 					   BIN_INSTALL_DIR 
 					   LIB_INSTALL_DIR 
 					   INCLUDE_INSTALL_DIR 
@@ -375,78 +300,94 @@ macro(install_library)
 	fwmessage(STATUS "------------------------------------------------------")
 	fwmessage(STATUS "Installing ${P_NAME} library")	
 	fwmessage(STATUS "------------------------------------------------------")
-	
-	# handle library naming
-	if("${P_TYPE}" STREQUAL "STATIC" OR "${P_TYPE}" STREQUAL "STATIC_AND_SHARED" OR  "${P_TYPE}" STREQUAL "SHARED_AND_STATIC")
-		set(INSTALL_STATIC ON)
-		set(STATIC_LIB_MAME ${P_NAME}_static)
-		fwmessage(STATUS "STATIC_LIB_MAME = ${STATIC_LIB_MAME}")
-	endif()
-	
-	if("${P_TYPE}" STREQUAL "SHARED" OR "${P_TYPE}" STREQUAL "STATIC_AND_SHARED" OR  "${P_TYPE}" STREQUAL "SHARED_AND_STATIC")
-		set(INSTALL_SHARED ON)
-		set(SHARED_LIB_MAME ${P_NAME})
-		fwmessage(STATUS "SHARED_LIB_MAME = ${SHARED_LIB_MAME}")
-	endif()
+	fwmessage(STATUS "CORE_NAME            = ${P_CORE_NAME}")
+	fwmessage(STATUS "NAME                 = ${P_NAME}")
+	fwmessage(STATUS "HEADER_FILES         = ${P_HEADER_FILES}")
+	fwmessage(STATUS "BIN_INSTALL_DIR      = ${P_BIN_INSTALL_DIR}")
+	fwmessage(STATUS "LIB_INSTALL_DIR      = ${P_LIB_INSTALL_DIR}")
+	fwmessage(STATUS "INCLUDE_INSTALL_DIR  = ${P_INCLUDE_INSTALL_DIR}")
+	fwmessage(STATUS "CMAKE_INSTALL_DIR    = ${P_CMAKE_INSTALL_DIR}")
 		
 	# realize the apsolute path of the various installation targets
 	realize_install_path(P_BIN_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}")
 	realize_install_path(P_LIB_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}")
 	realize_install_path(P_INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_INCLUDEDIR}")
-	realize_install_path(P_CMAKE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake")
+	realize_install_path(P_CMAKE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/${P_NAME}/cmake")
 
 	# generate paths relevant for the current library version (will be different for statis and shared lib versions
-	set(MODULE_BIN_INSTALL_DIR 		"${P_BIN_INSTALL_DIR}")
-	set(MODULE_LIB_INSTALL_DIR     	"${P_LIB_INSTALL_DIR}/${P_NAME}")
-	set(MODULE_INCLUDE_INSTALL_DIR 	"${P_INCLUDE_INSTALL_DIR}/${P_NAME}")
-	set(MODULE_CMAKE_INSTALL_DIR 	"${P_CMAKE_INSTALL_DIR}")
-	set(DEPENDENCY_INCLUDE_DIRS 	 ${P_DEPENDENCY_INCLUDE_DIRS})	
-
-	fwmessage(STATUS "BIN_INSTALL_DIR         = ${MODULE_BIN_INSTALL_DIR}")
-	fwmessage(STATUS "LIB_INSTALL_DIR         = ${MODULE_LIB_INSTALL_DIR}")
-	fwmessage(STATUS "INCLUDE_INSTALL_DIR     = ${MODULE_INCLUDE_INSTALL_DIR}")
-	fwmessage(STATUS "CMAKE_INSTALL_DIR       = ${MODULE_CMAKE_INSTALL_DIR}")
-	fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS = ${DEPENDENCY_INCLUDE_DIRS}")
+	set(MODULE_BIN_INSTALL_DIR 		${P_BIN_INSTALL_DIR})
+	set(MODULE_LIB_INSTALL_DIR     	${P_LIB_INSTALL_DIR}/${P_CORE_NAME})
+	set(MODULE_INCLUDE_INSTALL_DIR 	${P_INCLUDE_INSTALL_DIR}/${P_CORE_NAME})
+	set(MODULE_CMAKE_INSTALL_DIR 	${P_CMAKE_INSTALL_DIR})
+	set(DEPENDENCY_INCLUDE_DIRS 	${P_DEPENDENCY_INCLUDE_DIRS})	
+	set(CONFIG_FILE 				${P_NAME}Config.cmake)
+	set(VERSION_FILE 				${P_NAME}ConfigVersion.cmake)
+	set(TARGETS_FILE 				${P_NAME}Targets.cmake)
 		
+	fwmessage(STATUS "MODULE_BIN_INSTALL_DIR         = ${MODULE_BIN_INSTALL_DIR}")
+	fwmessage(STATUS "MODULE_LIB_INSTALL_DIR         = ${MODULE_LIB_INSTALL_DIR}")
+	fwmessage(STATUS "MODULE_INCLUDE_INSTALL_DIR     = ${MODULE_INCLUDE_INSTALL_DIR}")
+	fwmessage(STATUS "MODULE_CMAKE_INSTALL_DIR       = ${MODULE_CMAKE_INSTALL_DIR}")
+	fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS 		 = ${DEPENDENCY_INCLUDE_DIRS}")
+	fwmessage(STATUS "CONFIG_FILE             		 = ${CONFIG_FILE}")
+	fwmessage(STATUS "VERSION_FILE            		 = ${VERSION_FILE}")
+	fwmessage(STATUS "TARGETS_FILE            		 = ${TARGETS_FILE}")
+					
+	# set interface include folder
+	target_include_directories(${P_NAME} INTERFACE   ${MODULE_INCLUDE_INSTALL_DIR})	
+			
 	# Installation
-	if(INSTALL_STATIC)			
-		install (TARGETS ${STATIC_LIB_MAME}
-				 EXPORT ${STATIC_LIB_MAME}Targets
-				 RUNTIME DESTINATION ${MODULE_BIN_INSTALL_DIR} COMPONENT bin
-				 LIBRARY DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT shlib
-				 ARCHIVE DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT lib)		  		
-	endif()
-	
-	if(INSTALL_SHARED)	
-		install (TARGETS ${SHARED_LIB_MAME}
-				 EXPORT ${SHARED_LIB_MAME}Targets
-				 RUNTIME DESTINATION ${MODULE_BIN_INSTALL_DIR} COMPONENT bin
-				 LIBRARY DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT shlib
-				 ARCHIVE DESTINATION ${MODULE_LIB_INSTALL_DIR} COMPONENT lib)		  		
-	endif()
+	install (TARGETS ${P_NAME}
+			 EXPORT ${P_NAME}Targets )		  		
 
 	# PDB files on windows
-	IF(MSVC)
+	IF(MSVC AND P_INSTALL_PDB)
 		install(FILES "${PROJECT_BINARY_DIR}/Debug/${P_NAME}d.pdb" 		   DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS Debug)
 		install(FILES "${PROJECT_BINARY_DIR}/RelWithDebInfo/${P_NAME}.pdb" DESTINATION ${MODULE_LIB_INSTALL_DIR} CONFIGURATIONS RelWithDebInfo)
 	endif()	
 
-
 	# include files
 	install_retain_dir_exclude_include(DESTINATION ${MODULE_INCLUDE_INSTALL_DIR} FILES ${P_HEADER_FILES})
-	install (FILES ${PROJECT_BINARY_DIR}/${P_NAME}_config.h DESTINATION ${MODULE_INCLUDE_INSTALL_DIR})
+	install (FILES ${PROJECT_BINARY_DIR}/${P_CORE_NAME}_config.h DESTINATION ${MODULE_INCLUDE_INSTALL_DIR})	
 
 	# Configuration handling
 	include(CMakePackageConfigHelpers)
 
-	# handle configuration
-	if(INSTALL_STATIC)			
-		install_lib_config(LIB_NAME ${STATIC_LIB_MAME} MODULE_CMAKE_INSTALL_DIR ${MODULE_CMAKE_INSTALL_DIR} DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS})
-	endif()
-	
-	if(INSTALL_SHARED)		
-		install_lib_config(LIB_NAME ${SHARED_LIB_MAME} MODULE_CMAKE_INSTALL_DIR ${MODULE_CMAKE_INSTALL_DIR} DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS})
-	endif()
+	# set the global var LIB_NAME (used by config file expansion so it must exist!
+	set(LIB_NAME ${P_NAME})		
+		
+	# Add all targets to the build-tree export set
+	export(TARGETS ${P_NAME} FILE "${PROJECT_BINARY_DIR}/${TARGETS_FILE}")	
+
+	# Export the package for use from the build-tree
+	# (this registers the build-tree with a global CMake-registry)
+	export(PACKAGE ${P_NAME})	
+
+	# locate a template for the config file (will use libConfig.cmake.in in projetc root if existing then fall back to the global default in cmake 
+	find_file(LIB_CONFIG_IN libConfig.cmake.in PATHS ${CMAKE_CURRENT_SOURCE_PATH} ${CMAKE_MODULE_PATH})
+	fwmessage(STATUS "LIB_CONFIG_IN = ${LIB_CONFIG_IN}")	
+
+	# make sure that DEPENDENCY_INCLUDE_DIRS exists
+	if("${DEPENDENCY_INCLUDE_DIRS}" STREQUAL "")
+		set(DEPENDENCY_INCLUDE_DIRS " ")
+	endif()	
+
+	# generate the cmake configuration
+	configure_package_config_file(${LIB_CONFIG_IN} ${PROJECT_BINARY_DIR}/${CONFIG_FILE}	INSTALL_DESTINATION ${MODULE_CMAKE_INSTALL_DIR}
+	                          PATH_VARS MODULE_INCLUDE_INSTALL_DIR)	
+
+	# lgenerate version cmake file
+	write_basic_package_version_file( ${PROJECT_BINARY_DIR}/${VERSION_FILE}
+								  VERSION ${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}.${CMAKE_PROJECT_VERSION_PATCH}
+								  COMPATIBILITY AnyNewerVersion )	
+
+	# Install the library config and version files
+	install(FILES  	"${PROJECT_BINARY_DIR}/${CONFIG_FILE}"
+					"${PROJECT_BINARY_DIR}/${VERSION_FILE}"
+					DESTINATION ${MODULE_CMAKE_INSTALL_DIR})
+
+	# Install the export set for use with the install-tree
+	install(EXPORT ${P_NAME}Targets DESTINATION ${MODULE_CMAKE_INSTALL_DIR})		
 endmacro()
 
 #macro: install_executable
@@ -581,26 +522,19 @@ macro(make_library)
 
 	# define project files
 	set(PROJECT_SOURCE_FILES)	# initiate PROJECT_SOURCE_FILES to empty
+	set(PROJECT_HEADER_FILES)	# initiate PROJECT_SOURCE_FILES to empty
+	
+	# add CXX files
 	list(APPEND PROJECT_SOURCE_FILES ${P_CXX_SOURCE_FILES})
-	list(APPEND PROJECT_SOURCE_FILES ${P_CXX_HEADER_FILES})
+	list(APPEND PROJECT_HEADER_FILES ${P_CXX_HEADER_FILES})
 
-	#add cuda sullrt if requested
+	#add cuda runtime if requested
 	if(P_CUDA)
 		# configure CUDA
 		include(cuda)
-		
-		# set active CUDA flags
-		if(STATIC_LIB)
-			set(CMAKE_CUDA_FLAGS ${CMAKE_CUDA_FLAGS_STATIC})
-			set(CUDA_LIBRARIES ${CUDA_LIBRARIES_STATIC})
-		else()
-			set(CMAKE_CUDA_FLAGS ${CMAKE_CUDA_FLAGS_SHARED})
-			set(CUDA_LIBRARIES ${CUDA_LIBRARIES_SHARED})
-		endif()
-	
+			
 		list(APPEND PROJECT_SOURCE_FILES ${P_CUDA_SOURCE_FILES})
-		list(APPEND PROJECT_SOURCE_FILES ${P_CUDA_HEADER_FILES})
-	
+		list(APPEND PROJECT_HEADER_FILES ${P_CUDA_HEADER_FILES})	
 	endif()
 
 	# handle project config file
@@ -611,11 +545,25 @@ macro(make_library)
 	# print source files
 	fwmessage(STATUS "PROJECT_SOURCE_FILES = ${PROJECT_SOURCE_FILES}")
 
+
+	# ----------------------------
 	# define object library name
+	
+	# save OBJECT library name
 	set(OBJECT_LIB_NAME ${P_NAME}_objlib)
 
 	# create common compiled components
-	add_library(${OBJECT_LIB_NAME} OBJECT ${PROJECT_SOURCE_FILES})
+	add_library(${OBJECT_LIB_NAME} OBJECT ${PROJECT_SOURCE_FILES} ${PROJECT_HEADER_FILES})
+
+	# set configuration
+	set_target_cxx_config(TARGET ${OBJECT_LIB_NAME})
+	
+	# activate position independant code
+	set_target_properties(${OBJECT_LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+	if(P_CUDA)
+		set_target_cuda_config(TARGET ${OBJECT_LIB_NAME})
+	endif()
 
 	# set include and library dirs
 	target_include_directories(${OBJECT_LIB_NAME} PUBLIC   ${PACKAGE_INCLUDE_DIRS})			# include dirs needed for pagkages
@@ -623,80 +571,78 @@ macro(make_library)
 	target_include_directories(${OBJECT_LIB_NAME} PRIVATE  ${PROJECT_SOURCE_DIR})			# add project source as private
 	target_include_directories(${OBJECT_LIB_NAME} PRIVATE  ${PROJECT_BINARY_DIR})			# add project binary as private
 	target_include_directories(${OBJECT_LIB_NAME} PRIVATE  ${P_PRIVATE_INCLUDE_DIRS})		# add additional private include dirs (like ./include if the project include files are not found in the root)
-
-	target_link_libraries(${OBJECT_LIB_NAME} PUBLIC ${P_DEPENDENCY_LIBRARIES})				# link dependency libraries
-
-	# If using MSVC the set the debug database filename
-	if(MSVC)
-		set_property(TARGET ${OBJECT_LIB_NAME} PROPERTY COMPILE_PDB_NAME_DEBUG "${P_NAME}d")
-		set_property(TARGET ${OBJECT_LIB_NAME} PROPERTY COMPILE_PDB_NAME_RELWITHDEBINFO "${P_NAME}")		
-	endif()
-
-	# precompiled headers
-	if(USE_PRECOMPILED_HEADERS)
-		set(RESOLVED_HEADER_FILES)
-		foreach(i IN LISTS HEADER_FILES)
-			list(APPEND RESOLVED_HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/${i}")
-		endforeach()
 	
-		fwmessage(STATUS "RESOLVED_HEADER_FILES    = ${RESOLVED_HEADER_FILES}")
-		target_precompile_headers(${OBJECT_LIB_NAME} PUBLIC ${RESOLVED_HEADER_FILES})
+	# precompiled headers
+	if(USE_PRECOMPILED_HEADERS)	
+		target_precompile_headers(${OBJECT_LIB_NAME} PRIVATE ${PROJECT_HEADER_FILES})
 	endif()
-
-	# compile options
-	target_compile_features(${OBJECT_LIB_NAME} PUBLIC ${CXX_COMPILER_STANDARD})
-	set_target_properties(${OBJECT_LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 	# generat find libraries
 	if(BUILD_SHARED)
+	
+		# create the library target
 		add_library(${SHARED_LIB_MAME} SHARED $<TARGET_OBJECTS:${OBJECT_LIB_NAME}>)
 		
-		# shared lib config
+				
+		# set configuration
+		set_target_cxx_config(TARGET ${SHARED_LIB_MAME})
+	
+		# activate position independant code
+		set_target_properties(${OBJECT_LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+			
+		# configure include folders
 		target_include_directories(${SHARED_LIB_MAME} PUBLIC ${PACKAGE_SHARED_INCLUDE_DIRS})
-		target_link_libraries(${SHARED_LIB_MAME} PUBLIC ${PACKAGE_SHARED_LIBRARIES})
 		
-		# set position independent output
-		set_target_properties(${SHARED_LIB_MAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
-		
-		# append d to debug libraries
-		set_property(TARGET ${SHARED_LIB_MAME} PROPERTY DEBUG_POSTFIX d)	
-
+		# library linkage
+		target_link_libraries(${SHARED_LIB_MAME} PUBLIC ${PACKAGE_SHARED_LIBRARIES} ${P_DEPENDENCY_LIBRARIES})
+								
 		#handle installation
 		if(P_INSTALL)
-			install_library(NAME ${SHARED_LIB_MAME} TYPE ${P_TYPE} 
-							HEADER_FILES 		${P_CXX_HEADER_FILES}
-							DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS}
+			install_library(CORE_NAME ${P_NAME} 
+							NAME ${SHARED_LIB_MAME} 
+							HEADER_FILES 		${PROJECT_HEADER_FILES}
+							#DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS}
 							BIN_INSTALL_DIR 	${P_BIN_INSTALL_DIR}
 							LIB_INSTALL_DIR 	${P_LIB_INSTALL_DIR}
 							INCLUDE_INSTALL_DIR ${P_INCLUDE_INSTALL_DIR}
 							CMAKE_INSTALL_DIR	${P_CMAKE_INSTALL_DIR}
+							INSTALL_PDB
 							)
 		
 		endif()  		
 	endif()
 	
 	if(BUILD_STATIC)
+	
+		# create the library target
 		add_library(${STATIC_LIB_MAME} STATIC $<TARGET_OBJECTS:${OBJECT_LIB_NAME}>)
+				
+		# set configuration
+		set_target_cxx_config(TARGET ${STATIC_LIB_MAME})
+	
+		# activate position independant code
+		set_target_properties(${OBJECT_LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 		
-		# static lib config
-		target_include_directories(${STATIC_LIB_MAME} PUBLIC ${PACKAGE_STATIC_INCLUDE_DIRS})
-		target_link_libraries(${STATIC_LIB_MAME} PUBLIC ${PACKAGE_STATIC_LIBRARIES})
+		# configure include folders
+		target_include_directories(${STATIC_LIB_MAME} PUBLIC ${PACKAGE_SHARED_INCLUDE_DIRS})
 		
-		# append d to debug libraries
-		set_property(TARGET ${STATIC_LIB_MAME} PROPERTY DEBUG_POSTFIX d)		
-		
+		# library linkage
+		target_link_libraries(${STATIC_LIB_MAME} PUBLIC ${PACKAGE_STATIC_LIBRARIES} ${P_DEPENDENCY_LIBRARIES})
+				
+					
 		#handle installation
 		if(P_INSTALL)
-			install_library(NAME ${STATIC_LIB_MAME} TYPE ${P_TYPE} 
-							HEADER_FILES 		${P_CXX_HEADER_FILES}
-							DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS}
+			install_library(CORE_NAME ${P_NAME} 
+							NAME ${STATIC_LIB_MAME} 
+							HEADER_FILES 		${PROJECT_HEADER_FILES}
+							#DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS}
 							BIN_INSTALL_DIR 	${P_BIN_INSTALL_DIR}
 							LIB_INSTALL_DIR 	${P_LIB_INSTALL_DIR}
 							INCLUDE_INSTALL_DIR ${P_INCLUDE_INSTALL_DIR}
-							CMAKE_INSTALL_DIR	${P_CMAKE_INSTALL_DIR}
+							CMAKE_INSTALL_DIR	${P_CMAKE_INSTALL_DIR}							
 							)
 		
-		endif()  	
+		endif()  		
 		
 	endif()
 
@@ -814,7 +760,7 @@ macro(make_executable)
 	
 	# precompiled headers
 	if(USE_PRECOMPILED_HEADERS)
-		target_precompile_headers(${LIB_NAME} PUBLIC ${HEADER_FILES})
+		target_precompile_headers(${LIB_NAME} PRIVATE ${HEADER_FILES})
 	endif()
 	
 	# compile options
@@ -825,7 +771,7 @@ macro(make_executable)
 
 	#handle installation
 	if(P_INSTALL)
-		install_executable(NAME ${EXE_NAME} BIN_INSTALL_DIR ${P_BIN_INSTALL_DIR} CMAKE_INSTALL_DIR	${P_CMAKE_INSTALL_DIR})
+		#install_executable(NAME ${EXE_NAME} BIN_INSTALL_DIR ${P_BIN_INSTALL_DIR} CMAKE_INSTALL_DIR	${P_CMAKE_INSTALL_DIR})
 	endif()    
 endmacro()
 
@@ -930,12 +876,11 @@ set(options "CUDA")
 						)
 	endif()
 	
-	set_target_properties(tests PROPERTIES DISABLE_PRECOMPILE_HEADERS ON)
-	
-	#if(USE_PRECOMPILED_HEADERS)
-	#	target_precompile_headers(tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../include/${P_LIB_NAME}.h)
-	#endif()
-	
+	# precompiled headers
+	if(USE_PRECOMPILED_HEADERS)	
+		target_precompile_headers(tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../include/${P_LIB_NAME}.h")
+	endif()	
+		
 	# add links to target library
 	target_include_directories(tests PRIVATE ${${P_LIB_NAME}_INCLUDE_DIR} ${${P_LIB_NAME}_CONFIG_DIR} ${PROJECT_BINARY_DIR})
 	target_link_directories(tests PRIVATE ${${P_LIB_NAME}_BINARY_DIR})

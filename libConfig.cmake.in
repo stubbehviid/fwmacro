@@ -1,24 +1,6 @@
-# - Config file for the fwstdlib package
-# It defines the following variables
-#  @LIB_CORENAME_UPPER@_INCLUDE_DIRS - include directories for FooBar
-#  @LIB_CORENAME_UPPER@_LIBRARIES    - libraries to link against
-#  @LIB_NAME@_INCLUDE_DIRS - include directories for FooBar
-#  @LIB_NAME@_LIBRARIES    - libraries to link against
-
 @PACKAGE_INIT@
 
-# load targets
-get_filename_component(SELF_DIR "${CMAKE_CURRENT_LIST_FILE}" DIRECTORY)
-include("${SELF_DIR}/${CMAKE_BUILD_TYPE}/@LIB_NAME@Targets.cmake")
-
-set_and_check(@LIB_NAME@_INCLUDE_DIRS "@PACKAGE_MODULE_INCLUDE_INSTALL_DIR@" @PACKAGE_DEPENDENCY_INCLUDE_DIRS@)
-
-set(@LIB_NAME@_LIBRARIES @ACTIVE_DEPENDENCY_LIBS@)
-list(APPEND @LIB_NAME@_LIBRARIES "@LIB_NAME@")
-
-#set(@LIB_CORENAME_UPPER@_INCLUDE_DIRS ${@LIB_NAME@_INCLUDE_DIRS})
-#set(@LIB_CORENAME_UPPER@_LIBRARIES ${@LIB_NAME@_LIBRARIES})
-
-
+set_and_check(@LIB_NAME@_INCLUDE_DIR "@PACKAGE_MODULE_INCLUDE_INSTALL_DIR@")
+set(@LIB_NAME@_LIBRARIES @LIB_NAME@)
 check_required_components(@LIB_NAME@)
 

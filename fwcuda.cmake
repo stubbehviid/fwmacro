@@ -5,6 +5,14 @@ if(NOT CUDA_CONFIGURED)
 	# Some CUDA specific option
 	OPTION (USE_CUDA_FAST_MATH "Use CUDA fast math intrinsics" OFF)
 
+	# CUDA standard
+	set(CUDA_COMPILER_STANDARD "cuda_std_17" CACHE STRING "CUDA language standard")
+	set_property(CACHE CUDA_COMPILER_STANDARD PROPERTY STRINGS cuda_std_98 cuda_std_11 cuda_std_14 cuda_std_17 cuda_std_20 cuda_std_23)
+
+	# location of the 
+	set(CUDA_INCLUDE_DIRS "${CUDA_TOOLKIT_DIR}/include" CACHE PATH "CUDA Include Directory")
+
+
 
 	# activate seperable compilation (must be set before enable_language)
 	set(CUDA_SEPARABLE_COMPILATION ON)
@@ -14,22 +22,6 @@ if(NOT CUDA_CONFIGURED)
 	# enable CUDA language
 	enable_language(CUDA)
 		
-	set(CMAKE_CUDA_GENERAL_FLAGS ${CMAKE_CUDA_FLAGS} --device-link)
-	
-	if(USE_CUDA_FAST_MATH)
-		set(CMAKE_CUDA_GENERAL_FLAGS ${CMAKE_CUDA_GENERAL_FLAGS} -use_fast_math)
-	endif()
-	
-	# various language options
-	#set(CMAKE_CUDA_GENERAL_FLAGS ${CMAKE_CUDA_GENERAL_FLAGS} -Xcudafe "--diag_suppress=extra_semicolon" 
-	#														 -Xcudafe "--diag_suppress=exception_spec_override_incompat"
-	#														 -Xcudafe "--diag_suppress=boolean_controlling_expr_is_constant"
-	#														 -Xcudafe "--diag_suppress=unsigned_compare_with_zero"
-	#														 -Xcudafe "--diag_suppress=generated_exception_spec_override_incompat" )
-	
-	set(CMAKE_CUDA_FLAGS_STATIC ${CMAKE_CUDA_GENERAL_FLAGS} -cudart static)
-	set(CMAKE_CUDA_FLAGS_SHARED ${CMAKE_CUDA_GENERAL_FLAGS} -cudart shared)
-	set(LIBRARY_USE_CUDA ON)
 		
 	# locate the CUDA toolkit
 	
@@ -80,4 +72,49 @@ if(NOT CUDA_CONFIGURED)
 	message(STATUS "CMAKE_CUDA_FLAGS_STATIC = ${CMAKE_CUDA_FLAGS_STATIC}")
 	message(STATUS "CMAKE_CUDA_FLAGS_SHARED = ${CMAKE_CUDA_FLAGS_SHARED}")
 	message(STATUS "CMAKE_CXX_FLAGS_INIT    = ${CMAKE_CXX_FLAGS_INIT}")
-endif()
+endif()	
+		
+		
+		
+macro(set_target_cuda_config)
+	set(options STATIC)
+	set(oneValueArgs TARGET )
+	set(multiValueArgs )
+	cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
+
+	set(LIBRARY_USE_CUDA ON)
+	
+	# set language standard
+	target_compile_features(${P_TARGET} PRIVATE ${CUDA_COMPILER_STANDARD})
+	
+	# set device linkage
+	target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:--device-link>)
+
+	# CUDA fast math
+	if(USE_CUDA_FAST_MATH)
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-use_fast_math>)
+	endif()
+	
+	if(P_STATIC)
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-cudart static>)
+	else()
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-cudart shared>)
+	endif()
+	
+	# set CUDA include directory
+	target_include_directories(${P_TARGET} PUBLIC ${CUDA_INCLUDE_DIRS})
+	
+	# add cuda toolkit to linker folders
+	target_link_directories(${P_TARGET} PUBLIC ${CUDA_LIBRARY_DIR})
+	
+	if(P_STATIC)
+		target_link_libraries(${P_TARGET} PUBLIC ${CUDA_LIBRARIES_STATIC})
+	else()
+		target_link_libraries(${P_TARGET} PUBLIC ${CUDA_LIBRARIES_SHARED})
+	endif()
+endmacro()	
+		
+	
+		
+	
+

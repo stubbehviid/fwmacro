@@ -2,28 +2,28 @@
 # detect compiler family
 #-----------------------
 
-set(COMPILER_FAMILY "UNKNOWN")
+# first make sure that all compiler types are marked disabled
+set(USE_CLANG_COMPILER OFF)
+set(USE_GNU_COMPILER OFF)
+set(USE_MSVC_COMPILER OFF)
 
+# then activate the compiler that is actually used
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  set(COMPILER_FAMILY "CLANG")
+	fwmessage(STATUS "Compiler is CLANG")
+	set(USE_CLANG_COMPILER ON)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  set(COMPILER_FAMILY "GNU")
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-  set(COMPILER_FAMILY "INTEL")
+	fwmessage(STATUS "Compiler is GNU")
+	set(USE_GNU_COMPILER ON)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  set(COMPILER_FAMILY "MSVC")
-endif()
-
-if(COMPILER_FAMILY STREQUAL "UNKNOWN")
-	fwmessage(ERROR "Unsupported compiler - edit compiler.cmake to ass support")
+	fwmessage(STATUS "Compiler is MSVC")
+	set(USE_MSVC_COMPILER ON)
 else()
-	fwmessage(STATUS "Compiler is ${COMPILER_FAMILY}")
+	message(WARNING "calling fwmacros.cmake for unknown compiler")
+	message(WARNING "you need to edit fwcompiler.cmake")
 endif()
 
-
-#--------
-# options
-#--------
+#--------------------------
+# Global options
 
 # OpenMP
 OPTION (USE_OPENMP "Compile with OpenMP" ON)
@@ -45,9 +45,10 @@ set_property(CACHE SIMD_MODE PROPERTY STRINGS SIMD_NONE SIMD_SSE SIMD_SSE2 SIMD_
 set(CXX_COMPILER_STANDARD "cxx_std_20" CACHE STRING "C++ language standard")
 set_property(CACHE CXX_COMPILER_STANDARD PROPERTY STRINGS cxx_std_98 cxx_std_11 cxx_std_14 cxx_std_17 cxx_std_20 cxx_std_23)
 
-# Copmpiler specific options
+#--------------------------
+# Compiler specific options
 
-if(COMPILER_FAMILY STREQUAL "MSVC")
+if(USE_MSVC_COMPILER)
 	#OPTION (MSVC_USE_EXPERIMENTAL_OPENMP "use the MSVC --openmp:experimental clause" ON)
 	
 	set(MSVC_WARNING_LEVEL "3" CACHE STRING "Compiler warning reporting level")
@@ -56,23 +57,21 @@ if(COMPILER_FAMILY STREQUAL "MSVC")
 	OPTION (MSVC_PARALLEL_COMPILATION "Use parallel compilation" ON)
 endif()
 
-if(COMPILER_FAMILY STREQUAL "CLANG")
+if(USE_CLANG_COMPILER)
 	OPTION( USE_Werror "Treat warnings as errors -Werror" OFF)
 	OPTION( USE_Wall "Use -Wall" ON)
-	OPTION( USE_Wextra "Use -Wextra" ON)
-	OPTION( USE_Wpedantic "Use -Wpedantic" ON)
+	OPTION( USE_Wextra "Use -Wextra" OFF)
+	OPTION( USE_Wpedantic "Use -Wpedantic" OFF)
+	OPTION( USE_Wthreadsafety "Use -Wthread-safety" OFF)
 
 	set(CLANG_ARCHITECTURE "native" CACHE STRING "Compile for CPU architecture")
 	OPTION (CLANG_STATIC_ANALYSIS "Use the clang static analyzer" OFF)
 	
 	OPTION (CLANG_USE_TIDY "Use clang-tidy" OFF)
 	
-	OPTION( CLANG_SANITIZE_THREAD_SAFETY "Use -Wthread-safety -fsanitize=thread" OFF)
-	OPTION( CLANG_SANITIZE_ADDRESS "Use -fsanitize=address" OFF)
-	OPTION( CLANG_SANITIZE_MEMORY "Use -fsanitize=memory" OFF)
-	OPTION( CLANG_SANITIZE_UNDEFINED "Use -fsanitize=undefined" OFF)
-	OPTION( CLANG_SANITIZE_LEAK "Use -fsanitize=leak" OFF)
-	OPTION( CLANG_SANITIZE_SAFE_STACK "Use -fsanitize=safe-stack" OFF)	
+	# clang sanitizers
+	set(CLANG_SANITIZER "none" CACHE STRING "Compiler with clang sanitizer active")
+	set_property(CACHE CLANG_SANITIZER PROPERTY STRINGS none thread address memory undefined leak safe-stack)	
 	
 	if(CLANG_STATIC_ANALYSIS)
 		set(CLANG_STATIC_ANALYSIS_DIR "" CACHE STRING "Where to put the clang statioc analysis output files")
@@ -87,9 +86,16 @@ if(COMPILER_FAMILY STREQUAL "CLANG")
 	if(CLANG_USE_TIDY)	
 		set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-header-filter=.;-checks=*;--use-color")
 	endif()
+	
+	# target debugger
+	set(CLANG_TARGET_DEBUGGER "none" CACHE STRING "Generate debug inforation optrimized for debugger")
+	set_property(CACHE CLANG_TARGET_DEBUGGER PROPERTY STRINGS none default gdb lldb sce dbx)
+	
+	#additional compiler arguments
+	set(CLANG_ADDITIONAL_ARGUMENTS "" CACHE PATH "Additional commandline arguments for clang compiler")
 endif()
 
-if(COMPILER_FAMILY STREQUAL "GNU")
+if(USE_GNU_COMPILER)
 	OPTION( USE_Werror "Treat warnings as errors -Werror" OFF)
 	OPTION( USE_Wall "Use -Wall" ON)
 	OPTION( USE_Wextra "Use -Wextra" ON)
@@ -100,251 +106,262 @@ endif()
 # Configure SIMD mode
 # -------------------
 if( SIMD_MODE STREQUAL "SIMD_SSE" )
- set(USE_SSE TRUE)
+ set(USE_SSE ON)
  fwmessage(STATUS "Using SIMD mode SSE")
 elseif( SIMD_MODE STREQUAL "SIMD_SSE2" )
- set(USE_SSE2 TRUE)
+ set(USE_SSE2 ON)
  fwmessage(STATUS "Using SIMD mode SSE2")
 elseif( SIMD_MODE STREQUAL "SIMD_AVX" )
- set(USE_AVX TRUE)
+ set(USE_AVX ON)
  fwmessage(STATUS "Using SIMD mode AVX")
 elseif( SIMD_MODE STREQUAL "SIMD_AVX2" )
- set(USE_AVX2 TRUE)
+ set(USE_AVX2 ON)
  fwmessage(STATUS "Using SIMD mode AVX2")
 elseif( SIMD_MODE STREQUAL "SIMD_AVX512" )
- set(USE_AVX512 TRUE)
+ set(USE_AVX512 ON)
  fwmessage(STATUS "Using SIMD mode AVX512")
 else()
  fwmessage(WARNING "Using SIMD mode UNKNOWN")
 endif()
 
-#----------------
-# OPEN MP SUPPORT
-#----------------
-if(USE_OPENMP)
-	find_package(OpenMP)
-	if(OPENMP_FOUND)
-		fwmessage(STATUS "Building with OpenMP support")
+#------------------------------------------------------
+# macro for setting compiler config for specific target
+#------------------------------------------------------
+
+macro(set_target_cxx_config)
+	set(options )
+    set(oneValueArgs TARGET )
+    set(multiValueArgs )
+    cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
+
+	# set language standard
+	target_compile_features(${P_TARGET} PRIVATE ${CXX_COMPILER_STANDARD})
+	
+	# create debug libraries with 'd' postfix
+	set_property(TARGET ${P_TARGET} PROPERTY DEBUG_POSTFIX d)	
+
+	# handle open MP
+	if(USE_OPENMP)
+		find_package(OpenMP)
+		if(OPENMP_FOUND)
+			fwmessage(STATUS "Building with OpenMP support")
+					
+			target_include_directories(${P_TARGET} PUBLIC ${OpenMP_CXX_INCLUDE_DIRS})
+			target_link_libraries(${P_TARGET} PUBLIC ${OpenMP_CXX_LIBRARIES})
 				
-		add_compile_options( ${OpenMP_CXX_FLAGS} )
-		add_link_options( ${OpenMP_EXE_LINKER_FLAGS} )
-				
-		#if(MSVC_USE_EXPERIMENTAL_OPENMP)
-		#	add_compile_options( "-openmp:experimental" )
-		#endif()
-		
-		link_libraries(${OpenMP_CXX_LIBRARIES})	
-		include_directories( ${OpenMP_CXX_INCLUDE_DIRS} )				
-	endif()
-else()
-	fwmessage(STATUS "Building without OpenMP support")
-endif()
-
-
-# ---------------------------
-# compiler optimization flags
-# ---------------------------
-
-# optimization level
-if(COMPILER_FAMILY STREQUAL "MSVC")	# windows compilers
-
-	# debug
-	if(OPTIMIZATION_LEVEL_DEBUG STREQUAL "O0")
-		set(CMAKE_CXX_FLAGS_DEBUG "/MDd /Zi /RTC1 /Od /Ob0")
-	elseif(OPTIMIZATION_LEVEL_DEBUG STREQUAL "O1")
-		set(CMAKE_CXX_FLAGS_DEBUG "/MDd /Zi /RTC1 /O1 /Ob1")
-	else()
-		set(CMAKE_CXX_FLAGS_DEBUG "/MDd /Zi /RTC1 /O2 /Ob2")
-	endif()
-	
-	# release
-	if(OPTIMIZATION_LEVEL_RELEASE STREQUAL "O0")
-		set(CMAKE_CXX_FLAGS_RELEASE "/MD /DNDEBUG /Od /Ob0")
-		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MD /DNDEBUG /Od /Ob0")
-	elseif(OPTIMIZATION_LEVEL_RELEASE STREQUAL "O1")
-		set(CMAKE_CXX_FLAGS_RELEASE "/MD /DNDEBUG /O1 /Ob1")
-		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MD /DNDEBUG /O1 /Ob1")	
-	else()
-		set(CMAKE_CXX_FLAGS_RELEASE "/MD /DNDEBUG /O2 /Ob2 /Oi /Ot")
-		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MD /DNDEBUG /O2 /Ob2 /Oi /Ot")		
-	endif()
-	
-	# warning level
-	string(APPEND CMAKE_CXX_FLAGS  " /W${MSVC_WARNING_LEVEL}" )
-	
-	# remove logo
-	string(APPEND CMAKE_CXX_FLAGS  " /nologo" )
-	
-	# parallel compilation
-	if(MSVC_PARALLEL_COMPILATION)
-		string(APPEND CMAKE_CXX_FLAGS  " /MP" )
-	endif()
-	
-	# fast math
-	if(USE_FAST_MATH)
-		string(APPEND CMAKE_CXX_FLAGS  " /fp:fast")
-	else()
-		string(APPEND CMAKE_CXX_FLAGS  " /fp:precise")
-	endif()
-	
-	# SIMD settings
-	if(USE_SSE)
-		fwmessage(STATUS "Building with SSE SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS  " /arch:SSE")
-	elseif(USE_SSE2)
-		fwmessage(STATUS "Building with SSE2 SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS  " /arch:SSE2")
-	elseif(USE_AVX)
-		fwmessage(STATUS "Building with AVX SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS  " /arch:AVX /DINSTRSET=7")		
-	elseif(USE_AVX2)
-		fwmessage(STATUS "Building with AVX2 SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS  " /arch:AVX2 /DINSTRSET=8")		
-	elseif(USE_AVX512)
-		fwmessage(STATUS "Building with AVX512 SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS  " /arch:AVX512")				
-	endif()	
-	
-	# disable anoying CRT warnings
-	string(APPEND CMAKE_CXX_FLAGS  " -D_CRT_SECURE_NO_WARNINGS " )
-endif()
-	
-	
-if(COMPILER_FAMILY STREQUAL "CLANG")
-	# Optimizations
-	string(APPEND CMAKE_CXX_FLAGS " -${OPTIMIZATION_LEVEL_RELEASE}" )
-
-	# fast math
-	if(USE_FAST_MATH)
-		string(APPEND CMAKE_CXX_FLAGS  " -ffast-math" )
-	endif()
-
-	string(APPEND CMAKE_CXX_FLAGS " -fno-omit-frame-pointer")
-	string(APPEND CMAKE_CXX_FLAGS  " -Wno-deprecated-declarations")
-	string(APPEND CMAKE_CXX_FLAGS  " -Wno-ignored-attributes")
-				
-	# Warnings
-	if(USE_Werror)
-		string(APPEND CMAKE_CXX_FLAGS  " -Werror")
-	endif()		
-	if(USE_Wall)
-		string(APPEND CMAKE_CXX_FLAGS  " -Wall")
-	endif()		
-	if(USE_Wextra)
-		string(APPEND CMAKE_CXX_FLAGS  " -Wextra")
-	endif()		
-	if(USE_Wpedantic)
-		string(APPEND CMAKE_CXX_FLAGS  " -Wpedantic")
-	endif()		
-		
-	# set architecture
-	string(APPEND CMAKE_CXX_FLAGS " -march=${CLANG_ARCHITECTURE}")		
-		
-	if(CLANG_STATIC_ANALYSIS)
-		string(APPEND CMAKE_CXX_FLAGS " --analyze -Xanalyzer -analyzer-output=text")
-		if(NOT "${CLANG_STATIC_ANALYSIS_DIR}" STREQUAL "")
-			string(APPEND CMAKE_CXX_FLAGS " -o ${CLANG_STATIC_ANALYSIS_DIR}")
+			target_compile_options(${P_TARGET} PUBLIC ${OpenMP_CXX_FLAGS})
+			target_link_options(${P_TARGET} PUBLIC ${OpenMP_EXE_LINKER_FLAGS})
+					
+			set_target_properties(${P_TARGET} PROPERTIES CMAKE_CXX_FLAGS ${OpenMP_CXX_FLAGS})
+			target_compile_options(${P_TARGET} PUBLIC ${OpenMP_CXX_INCLUDE_DIRS})				
 		endif()
+	else()
+		fwmessage(STATUS "Building without OpenMP support")
 	endif()
+
+
+	# ---------------------------
+	# MSVC Compiler configuration
+	if(USE_MSVC_COMPILER)
+		# debug
+		if(OPTIMIZATION_LEVEL_DEBUG STREQUAL "O0")
+			target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:/MDd /Zi /RTC1 /Od /Ob0>)
+		elseif(OPTIMIZATION_LEVEL_DEBUG STREQUAL "O1")
+			target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:/MDd /Zi /RTC1 /O1 /Ob1>)			
+		else()
+			target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:/MDd /Zi /RTC1 /O2 /Ob2>)
+			set(CMAKE_CXX_FLAGS_DEBUG "/MDd /Zi /RTC1 /O2 /Ob2")
+		endif()
+	
+		# release
+		if(OPTIMIZATION_LEVEL_RELEASE STREQUAL "O0")
+			target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:/MD /DNDEBUG /Od /Ob0>)
+			target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:/MD /DNDEBUG /Od /Ob0>)		
+		elseif(OPTIMIZATION_LEVEL_RELEASE STREQUAL "O1")
+			target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:/MD /DNDEBUG /O1 /Ob1>)
+			target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:/MD /DNDEBUG /O1 /Ob1>)				
+		else()
+			target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:/MD /DNDEBUG /O2 /Ob2 /Oi /Ot>)
+			target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:/MD /DNDEBUG /O2 /Ob2 /Oi /Ot>)
+		endif()
 		
-	if(CLANG_SANITIZE_THREAD_SAFETY)
-		string(APPEND CMAKE_CXX_FLAGS " -Wthread-safety -fsanitize=thread")		
-	endif()
-	if(CLANG_SANITIZE_ADDRESS)
-		string(APPEND CMAKE_CXX_FLAGS " -fsanitize=address")		
-	endif()
-	if(CLANG_SANITIZE_MEMORY)
-		string(APPEND CMAKE_CXX_FLAGS " -fsanitize=memory")		
-	endif()
-	if(CLANG_SANITIZE_UNDEFINED)
-		string(APPEND CMAKE_CXX_FLAGS " -fsanitize=undefined")
-	endif()
-	if(CLANG_SANITIZE_LEAK)
-		string(APPEND CMAKE_CXX_FLAGS " -fsanitize=leak")
-	endif()
-	if(CLANG_SANITIZE_SAFE_STACK)
-		string(APPEND CMAKE_CXX_FLAGS " -fsanitize=safe-stack")
+		# warning level
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/W${MSVC_WARNING_LEVEL}>)	
+		
+		# remove logo
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/nologo>)	
+		
+		# parallel compilation
+		if(MSVC_PARALLEL_COMPILATION)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/MP>)
+		endif()
+		
+		# fast math
+		if(USE_FAST_MATH)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/fp:fast>)
+		else()
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/fp:precise>)
+		endif()
+		
+		# SIMD settings
+		if(USE_SSE)
+			fwmessage(STATUS "Building with SSE SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/arch:SSE>)		
+		elseif(USE_SSE2)
+			fwmessage(STATUS "Building with SSE2 SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/arch:SSE2>)
+		elseif(USE_AVX)
+			fwmessage(STATUS "Building with AVX SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/arch:AVX>)
+		elseif(USE_AVX2)
+			fwmessage(STATUS "Building with AVX2 SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/arch:AVX2>)
+		elseif(USE_AVX512)
+			fwmessage(STATUS "Building with AVX512 SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/arch:AVX512>)		
+		endif()	
+		
+		# disable anoying CRT warnings
+		target_compile_definitions(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:_CRT_SECURE_NO_WARNINGS>)
+		
+		# If using MSVC the set the debug database filename
+		set_property(TARGET ${P_TARGET} PROPERTY COMPILE_PDB_NAME_DEBUG "${P_TARGET}d")
+		set_property(TARGET ${P_TARGET} PROPERTY COMPILE_PDB_NAME_RELWITHDEBINFO "${P_TARGET}")		
+		
+		# set position independent output
+		set_target_properties(${P_TARGET} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 	endif()
 	
-	# copy c++ flags to C
-	set(CMAKE_C_FLAGS ${CMAKE_CXX_FLAGS})
-	
-	# SIMD settings
-	if(USE_SSE)
-		fwmessage(STATUS "Building with SSE SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS " -msse")		
-	elseif(USE_SSE2)
-		fwmessage(STATUS "Building with SSE2 SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS " -msse2")
-	elseif(USE_AVX)
-		fwmessage(STATUS "Building with AVX SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS " -mavx")
-	elseif(USE_AVX2)
-		fwmessage(STATUS "Building with AVX2 SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS " -mavx -mavx2 -mfma")		
-	elseif(USE_AVX512)
-		fwmessage(STATUS "Building with AVX512 SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS  " -mavx512")
-	endif()
-	
-endif()
-	
-if(COMPILER_FAMILY STREQUAL "GNU")
-	# Optimizations
-	string(APPEND CMAKE_CXX_FLAGS " -${OPTIMIZATION_LEVEL_RELEASE}" )
+	# ---------------------------
+	# CLANG Compiler configuration
+	if(USE_CLANG_COMPILER)
+		# Optimizations
+		target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:-${OPTIMIZATION_LEVEL_DEBUG}>)
+		target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:-${OPTIMIZATION_LEVEL_RELEASE}>)
+		
+		if(${CLANG_TARGET_DEBUGGER} STREQUAL "default")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-g>)
+		elseif(${CLANG_TARGET_DEBUGGER} STREQUAL "none")			
+		else()
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-g${CLANG_TARGET_DEBUGGER}>)
+		endif()
+		# fast math
+		if(USE_FAST_MATH)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-ffast-math>)
+		endif()
 
-	# fast math
-	if(USE_FAST_MATH)
-		string(APPEND CMAKE_CXX_FLAGS  " -ffast-math" )
-	endif()
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-fno-omit-frame-pointer>)
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-declarations>)
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wno-ignored-attributes>)
 
-	string(APPEND CMAKE_CXX_FLAGS " -fno-omit-frame-pointer")
-	string(APPEND CMAKE_CXX_FLAGS  " -Wno-deprecated-declarations")
-	string(APPEND CMAKE_CXX_FLAGS  " -Wno-ignored-attributes")
+		
+			
+		# Warnings
+		if(USE_Werror)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Werror>)
+		endif()		
+		if(USE_Wall)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wall>)
+		endif()		
+		if(USE_Wextra)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wextra>)
+		endif()		
+		if(USE_Wpedantic)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>)
+		endif()		
+		if(USE_Wthreadsafety)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wthread-safety>)
+		endif()
+			
+		# set architecture
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-march=${CLANG_ARCHITECTURE}>)
+			
+		if(CLANG_STATIC_ANALYSIS)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:--analyze -Xanalyzer -analyzer-output=text>)
+			if(NOT "${CLANG_STATIC_ANALYSIS_DIR}" STREQUAL "")
+				target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-o ${CLANG_STATIC_ANALYSIS_DIR}>)
+			endif()
+		endif()
+			
+		if(NOT ${CLANG_SANITIZER} STREQUAL "none")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-fsanitize=${CLANG_SANITIZER}>)
+		endif()		
 				
-	# Warnings
-	if(USE_Werror)
-		string(APPEND CMAKE_CXX_FLAGS  " -Werror")
-	endif()		
-	if(USE_Wall)
-		string(APPEND CMAKE_CXX_FLAGS  " -Wall")
-	endif()		
-	if(USE_Wextra)
-		string(APPEND CMAKE_CXX_FLAGS  " -Wextra")
-	endif()		
-	if(USE_Wpedantic)
-		string(APPEND CMAKE_CXX_FLAGS  " -Wpedantic")
-	endif()			
-	
-	# copy c++ flags to C
-	set(CMAKE_C_FLAGS ${CMAKE_CXX_FLAGS})
-	
-	# SIMD settings
-	if(USE_SSE)
-		fwmessage(STATUS "Building with SSE SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS " -msse")		
-	elseif(USE_SSE2)
-		fwmessage(STATUS "Building with SSE2 SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS " -msse2")
-	elseif(USE_AVX)
-		fwmessage(STATUS "Building with AVX SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS " -mavx")
-	elseif(USE_AVX2)
-		fwmessage(STATUS "Building with AVX2 SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS " -mavx -mavx2 -mfma")		
-	elseif(USE_AVX512)
-		fwmessage(STATUS "Building with AVX512 SIMD code generation")
-		string(APPEND CMAKE_CXX_FLAGS  " -mavx512")
+		# SIMD settings
+		if(USE_SSE)
+			fwmessage(STATUS "Building with SSE SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-msse>)
+		elseif(USE_SSE2)
+			fwmessage(STATUS "Building with SSE2 SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-msse2>)
+		elseif(USE_AVX)
+			fwmessage(STATUS "Building with AVX SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-mavx>)
+		elseif(USE_AVX2)
+			fwmessage(STATUS "Building with AVX2 SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-mavx -mavx2 -mfma>)
+		elseif(USE_AVX512)
+			fwmessage(STATUS "Building with AVX512 SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-mavx512>)
+		endif()	
+
+		# add additional commenline arguments
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${CLANG_ADDITIONAL_ARGUMENTS}>)		
 	endif()
-endif()	
+
+	# ---------------------------
+	# GNU Compiler configuration
+	if(USE_GNU_COMPILER)
+		# Optimizations
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-${OPTIMIZATION_LEVEL_RELEASE}>)
+
+		# fast math
+		if(USE_FAST_MATH)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-ffast-math>)
+		endif()
+
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-fno-omit-frame-pointer>)
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-declarations>)
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wno-ignored-attributes>)
+
+		# Warnings
+		if(USE_Werror)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Werror>)
+		endif()		
+		if(USE_Wall)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wall>)
+		endif()		
+		if(USE_Wextra)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wextra>)
+		endif()		
+		if(USE_Wpedantic)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>)
+		endif()			
+		
+		# copy c++ flags to C
+		set(CMAKE_C_FLAGS ${CMAKE_CXX_FLAGS})
+		
+		# SIMD settings
+		if(USE_SSE)
+			fwmessage(STATUS "Building with SSE SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-msse>)
+		elseif(USE_SSE2)
+			fwmessage(STATUS "Building with SSE2 SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-msse2>)
+		elseif(USE_AVX)
+			fwmessage(STATUS "Building with AVX SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-mavx>)
+		elseif(USE_AVX2)
+			fwmessage(STATUS "Building with AVX2 SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-mavx -mavx2 -mfma>)
+		elseif(USE_AVX512)
+			fwmessage(STATUS "Building with AVX512 SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-mavx512>)
+		endif()
+	endif()	
+endmacro()
 
 
-# print configuration
-fwmessage(STATUS "COMPILER_FAMILY = ${COMPILER_FAMILY}")
-fwmessage(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
-fwmessage(STATUS "CMAKE_CXX_FLAGS_RELEASE = ${CMAKE_CXX_FLAGS_RELEASE}")
-fwmessage(STATUS "CMAKE_CXX_FLAGS_RELWITHDEBINFO = ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
-fwmessage(STATUS "CMAKE_CXX_FLAGS_DEBUG = ${CMAKE_CXX_FLAGS_DEBUG}")
 
 
 
