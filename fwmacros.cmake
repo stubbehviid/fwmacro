@@ -276,6 +276,7 @@ endmacro()
 #	CORE_NAME 				<core library name>
 #	NAME 					<library name>
 #	HEADER_FILES			<list of c++ header files to be installed>
+#   DEPENDENCY_INCLUDE_DIRS List of folders that show be included in include dirs
 #	BIN_INSTALL_DIR			where to install binary executables <final destination will be <BIN_INSTALL_DIR>
 #	LIB_INSTALL_DIR 		where to install library files <final destination will be <LIB_INSTALL_DIR>/<NAME>
 #	INCLUDE_INSTALL_DIR 	where to install include files <final destination will be <INCLUDE_INSTALL_DIR>/<NAME>
@@ -293,7 +294,8 @@ macro(install_library)
 					   BIN_INSTALL_DIR 
 					   LIB_INSTALL_DIR 
 					   INCLUDE_INSTALL_DIR 
-					   CMAKE_INSTALL_DIR)					   
+					   CMAKE_INSTALL_DIR
+					   DEPENDENCY_INCLUDE_DIRS)					   
     cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )	
 	
 	# tell what is being done
@@ -334,7 +336,7 @@ macro(install_library)
 	fwmessage(STATUS "TARGETS_FILE            		 = ${TARGETS_FILE}")
 					
 	# set interface include folder
-	target_include_directories(${P_NAME} INTERFACE   ${MODULE_INCLUDE_INSTALL_DIR})	
+	target_include_directories(${P_NAME} INTERFACE   ${MODULE_INCLUDE_INSTALL_DIR} ${P_DEPENDENCY_INCLUDE_DIRS})	
 			
 	# Installation
 	install (TARGETS ${P_NAME}
@@ -499,6 +501,8 @@ macro(make_library)
 	fwmessage(STATUS "${P_NAME}_INCLUDE_DIR   = ${${P_NAME}_INCLUDE_DIR}")
 	fwmessage(STATUS "${P_NAME}_CONFIG_DIR    = ${${P_NAME}_CONFIG_DIR}")
 	
+	# initiate the list of include dirs
+	set(PACKAGE_INCLUDE_DIRS)
 	
 	# handle library naming
 	if("${P_TYPE}" STREQUAL "STATIC" OR "${P_TYPE}" STREQUAL "STATIC_AND_SHARED" OR  "${P_TYPE}" STREQUAL "SHARED_AND_STATIC")
@@ -507,9 +511,8 @@ macro(make_library)
 		fwmessage(STATUS "STATIC_LIB_MAME = ${STATIC_LIB_MAME}")
 		
 		realize_package_dependencies(PREFER_STATIC ON OUTPUT_ID PACKAGE_STATIC PACKAGES ${P_DEPENDENCY_PACKAGES})
-		fwmessage(STATUS "PACKAGE_STATIC_INCLUDE_DIRS 	  = ${PACKAGE_STATIC_INCLUDE_DIRS}")
-		fwmessage(STATUS "PACKAGE_STATIC_LIBRARIES   	  = ${PACKAGE_STATIC_LIBRARIES}")
 		
+		list(APPEND PACKAGE_INCLUDE_DIRS ${PACKAGE_STATIC_INCLUDE_DIRS})		
 	endif()
 	
 	if("${P_TYPE}" STREQUAL "SHARED" OR "${P_TYPE}" STREQUAL "STATIC_AND_SHARED" OR  "${P_TYPE}" STREQUAL "SHARED_AND_STATIC")
@@ -518,8 +521,8 @@ macro(make_library)
 		fwmessage(STATUS "SHARED_LIB_MAME = ${SHARED_LIB_MAME}")
 		
 		realize_package_dependencies(PREFER_STATIC OFF OUTPUT_ID PACKAGE_SHARED PACKAGES ${P_DEPENDENCY_PACKAGES})
-		fwmessage(STATUS "PACKAGE_SHARED_INCLUDE_DIRS 	  = ${PACKAGE_SHARED_INCLUDE_DIRS}")
-		fwmessage(STATUS "PACKAGE_SHARED_LIBRARIES   	  = ${PACKAGE_SHARED_LIBRARIES}")
+		
+		list(APPEND PACKAGE_INCLUDE_DIRS ${PACKAGE_SHARED_INCLUDE_DIRS})		
 	endif()
 
 	# define project files
@@ -610,6 +613,7 @@ macro(make_library)
 							LIB_INSTALL_DIR 	${P_LIB_INSTALL_DIR}
 							INCLUDE_INSTALL_DIR ${P_INCLUDE_INSTALL_DIR}
 							CMAKE_INSTALL_DIR	${P_CMAKE_INSTALL_DIR}
+							DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS}
 							INSTALL_PDB
 							)
 		
@@ -642,7 +646,8 @@ macro(make_library)
 							BIN_INSTALL_DIR 	${P_BIN_INSTALL_DIR}
 							LIB_INSTALL_DIR 	${P_LIB_INSTALL_DIR}
 							INCLUDE_INSTALL_DIR ${P_INCLUDE_INSTALL_DIR}
-							CMAKE_INSTALL_DIR	${P_CMAKE_INSTALL_DIR}							
+							CMAKE_INSTALL_DIR	${P_CMAKE_INSTALL_DIR}	
+							DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS}							
 							)
 		
 		endif()  		
