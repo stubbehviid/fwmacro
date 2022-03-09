@@ -659,7 +659,20 @@ macro(make_library)
 		set_target_properties(${SHARED_LIB_MAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 		
 		# append d to debug libraries
-		set_property(TARGET ${SHARED_LIB_MAME} PROPERTY DEBUG_POSTFIX d)		
+		set_property(TARGET ${SHARED_LIB_MAME} PROPERTY DEBUG_POSTFIX d)	
+
+		#handle installation
+		if(P_INSTALL)
+			install_library(NAME ${SHARED_LIB_MAME} TYPE ${P_TYPE} 
+							HEADER_FILES 		${P_CXX_HEADER_FILES}
+							DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS}
+							BIN_INSTALL_DIR 	${P_BIN_INSTALL_DIR}
+							LIB_INSTALL_DIR 	${P_LIB_INSTALL_DIR}
+							INCLUDE_INSTALL_DIR ${P_INCLUDE_INSTALL_DIR}
+							CMAKE_INSTALL_DIR	${P_CMAKE_INSTALL_DIR}
+							)
+		
+		endif()  		
 	endif()
 	
 	if(BUILD_STATIC)
@@ -671,20 +684,23 @@ macro(make_library)
 		
 		# append d to debug libraries
 		set_property(TARGET ${STATIC_LIB_MAME} PROPERTY DEBUG_POSTFIX d)		
+		
+		#handle installation
+		if(P_INSTALL)
+			install_library(NAME ${STATIC_LIB_MAME} TYPE ${P_TYPE} 
+							HEADER_FILES 		${P_CXX_HEADER_FILES}
+							DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS}
+							BIN_INSTALL_DIR 	${P_BIN_INSTALL_DIR}
+							LIB_INSTALL_DIR 	${P_LIB_INSTALL_DIR}
+							INCLUDE_INSTALL_DIR ${P_INCLUDE_INSTALL_DIR}
+							CMAKE_INSTALL_DIR	${P_CMAKE_INSTALL_DIR}
+							)
+		
+		endif()  	
+		
 	endif()
 
-	#handle installation
-	if(P_INSTALL)
-		install_library(NAME ${P_NAME} TYPE ${P_TYPE} 
-					    HEADER_FILES 		${P_CXX_HEADER_FILES}
-						DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS}
-						BIN_INSTALL_DIR 	${P_BIN_INSTALL_DIR}
-					    LIB_INSTALL_DIR 	${P_LIB_INSTALL_DIR}
-					    INCLUDE_INSTALL_DIR ${P_INCLUDE_INSTALL_DIR}
-					    CMAKE_INSTALL_DIR	${P_CMAKE_INSTALL_DIR}
-						)
-	
-	endif()    
+	  
 endmacro()
 
 
