@@ -312,13 +312,13 @@ macro(install_library)
 	realize_install_path(P_BIN_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}")
 	realize_install_path(P_LIB_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}")
 	realize_install_path(P_INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_INCLUDEDIR}")
-	realize_install_path(P_CMAKE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/${P_NAME}/cmake")
+	realize_install_path(P_CMAKE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}")
 
 	# generate paths relevant for the current library version (will be different for statis and shared lib versions
 	set(MODULE_BIN_INSTALL_DIR 		${P_BIN_INSTALL_DIR})
 	set(MODULE_LIB_INSTALL_DIR     	${P_LIB_INSTALL_DIR}/${P_CORE_NAME})
 	set(MODULE_INCLUDE_INSTALL_DIR 	${P_INCLUDE_INSTALL_DIR}/${P_CORE_NAME})
-	set(MODULE_CMAKE_INSTALL_DIR 	${P_CMAKE_INSTALL_DIR})
+	set(MODULE_CMAKE_INSTALL_DIR 	${P_CMAKE_INSTALL_DIR}/cmake/${P_NAME})
 	set(DEPENDENCY_INCLUDE_DIRS 	${P_DEPENDENCY_INCLUDE_DIRS})	
 	set(CONFIG_FILE 				${P_NAME}Config.cmake)
 	set(VERSION_FILE 				${P_NAME}ConfigVersion.cmake)
@@ -435,6 +435,7 @@ endmacro()
 # 	TYPE <type>								Either STATIC, SHARED or STATIC_AND_SHARED
 #	CXX_SOURCE_FILES 						list of c++ source files
 #	CXX_HEADER_FILES						list of c++ header files
+#	PRECOMPILED_HEADER_FILES				list of include files to be used for precompiled headers (If not set CXX_HEADER_FILES will be used if precompiled headers are active)
 #	DEPENDENCY_PACKAGES						list of dependency packages (libraries with cmake config)
 #	DEPENDENCY_LIBRARIES							list of library dependencies (librarus without cmake config)
 #	DEPENDENCY_INCLUDE_DIRS					list of filters containg includefiles needed by the library
@@ -466,6 +467,7 @@ macro(make_library)
     set(oneValueArgs NAME TYPE)
     set(multiValueArgs CXX_SOURCE_FILES 
 					   CXX_HEADER_FILES 
+					   PRECOMPILED_HEADER_FILES
 					   DEPENDENCY_PACKAGES 
 					   DEPENDENCY_LIBRARIES 
 					   DEPENDENCY_INCLUDE_DIRS
@@ -574,7 +576,11 @@ macro(make_library)
 	
 	# precompiled headers
 	if(USE_PRECOMPILED_HEADERS)	
-		target_precompile_headers(${OBJECT_LIB_NAME} PRIVATE ${PROJECT_HEADER_FILES})
+		if(EXISTS P_PRECOMPILED_HEADER_FILES)
+			target_precompile_headers(${OBJECT_LIB_NAME} PRIVATE ${P_PRECOMPILED_HEADER_FILES})
+		else()
+			target_precompile_headers(${OBJECT_LIB_NAME} PRIVATE ${PROJECT_HEADER_FILES})
+		endif()
 	endif()
 
 	# generat find libraries
@@ -582,8 +588,7 @@ macro(make_library)
 	
 		# create the library target
 		add_library(${SHARED_LIB_MAME} SHARED $<TARGET_OBJECTS:${OBJECT_LIB_NAME}>)
-		
-				
+						
 		# set configuration
 		set_target_cxx_config(TARGET ${SHARED_LIB_MAME})
 	
