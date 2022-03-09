@@ -576,10 +576,10 @@ macro(make_library)
 	
 	# precompiled headers
 	if(USE_PRECOMPILED_HEADERS)	
-		if(EXISTS P_PRECOMPILED_HEADER_FILES)
-			target_precompile_headers(${OBJECT_LIB_NAME} PRIVATE ${P_PRECOMPILED_HEADER_FILES})
-		else()
+		if("${P_PRECOMPILED_HEADER_FILES}" STREQUAL "")
 			target_precompile_headers(${OBJECT_LIB_NAME} PRIVATE ${PROJECT_HEADER_FILES})
+		else()
+			target_precompile_headers(${OBJECT_LIB_NAME} PRIVATE ${P_PRECOMPILED_HEADER_FILES}) 
 		endif()
 	endif()
 
@@ -606,7 +606,6 @@ macro(make_library)
 			install_library(CORE_NAME ${P_NAME} 
 							NAME ${SHARED_LIB_MAME} 
 							HEADER_FILES 		${PROJECT_HEADER_FILES}
-							#DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS}
 							BIN_INSTALL_DIR 	${P_BIN_INSTALL_DIR}
 							LIB_INSTALL_DIR 	${P_LIB_INSTALL_DIR}
 							INCLUDE_INSTALL_DIR ${P_INCLUDE_INSTALL_DIR}
@@ -640,7 +639,6 @@ macro(make_library)
 			install_library(CORE_NAME ${P_NAME} 
 							NAME ${STATIC_LIB_MAME} 
 							HEADER_FILES 		${PROJECT_HEADER_FILES}
-							#DEPENDENCY_INCLUDE_DIRS ${DEPENDENCY_INCLUDE_DIRS}
 							BIN_INSTALL_DIR 	${P_BIN_INSTALL_DIR}
 							LIB_INSTALL_DIR 	${P_LIB_INSTALL_DIR}
 							INCLUDE_INSTALL_DIR ${P_INCLUDE_INSTALL_DIR}
@@ -661,6 +659,7 @@ endmacro()
 #	NAME <executable name>					Name of the executable to be generated
 #	CXX_SOURCE_FILES 						list of c++ source files
 #	CXX_HEADER_FILES						list of c++ header files
+#	PRECOMPILED_HEADER_FILES				list of include files to be used for precompiled headers (If not set CXX_HEADER_FILES will be used if precompiled headers are active)
 #	DEPENDENCY_PACKAGES						list of dependency packages (libraries with cmake config)
 #	DEPENDENCY_LIBRARIES							list of library dependencies (libraries without cmake config)
 #	DEPENDENCY_INCLUDE_DIRS					list of filters containg includefiles needed by the library
@@ -685,6 +684,7 @@ macro(make_executable)
     set(oneValueArgs NAME)
     set(multiValueArgs CXX_SOURCE_FILES 
 					   CXX_HEADER_FILES 
+					   PRECOMPILED_HEADER_FILES
 					   DEPENDENCY_PACKAGES 
 					   DEPENDENCY_LIBRARIES 
 					   DEPENDENCY_INCLUDE_DIRS
@@ -765,7 +765,11 @@ macro(make_executable)
 	
 	# precompiled headers
 	if(USE_PRECOMPILED_HEADERS)
-		target_precompile_headers(${LIB_NAME} PRIVATE ${HEADER_FILES})
+		if("${P_PRECOMPILED_HEADER_FILES}" STREQUAL "")
+			target_precompile_headers(${LIB_NAME} PRIVATE ${HEADER_FILES})
+		else()
+			target_precompile_headers(${LIB_NAME} PRIVATE ${P_PRECOMPILED_HEADER_FILES}) 
+		endif()
 	endif()
 	
 	# compile options
