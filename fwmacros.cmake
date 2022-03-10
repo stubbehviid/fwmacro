@@ -351,11 +351,11 @@ macro(install_library)
     set(LIB_NAME ${IL_NAME})     
         
     # Add all targets to the build-tree export set
-    export(TARGETS ${IL_NAME} FILE "${PROJECT_BINARY_DIR}/${TARGETS_FILE}")  
+    #export(TARGETS ${IL_NAME} FILE "${PROJECT_BINARY_DIR}/${TARGETS_FILE}")  
 
     # Export the package for use from the build-tree
     # (this registers the build-tree with a global CMake-registry)
-    export(PACKAGE ${IL_NAME})   
+    #export(PACKAGE ${IL_NAME})   
 
     # locate a template for the config file (will use libConfig.cmake.in in projetc root if existing then fall back to the global default in cmake 
     find_file(LIB_CONFIG_IN libConfig.cmake.in PATHS ${CMAKE_CURRENT_SOURCE_PATH} ${CMAKE_MODULE_PATH})
@@ -377,6 +377,13 @@ macro(install_library)
 
     # Install the export set for use with the install-tree
     install(EXPORT ${IL_NAME}Targets DESTINATION ${MODULE_CMAKE_INSTALL_DIR})  
+
+	# Add all targets to the build-tree export set
+    export(TARGETS ${IL_NAME} FILE "${PROJECT_BINARY_DIR}/${TARGETS_FILE}")  
+
+    # Export the package for use from the build-tree
+    # (this registers the build-tree with a global CMake-registry)
+    export(PACKAGE ${IL_NAME})  
 
 	fwmessage(STATUS "------------------------------------------------------")
     fwmessage(STATUS "done install_library (${IL_NAME})")    
