@@ -717,7 +717,7 @@ macro(make_executable)
         
     # tell what is being generated
     fwmessage(STATUS "------------------------------------------------------")
-    fwmessage(STATUS "make_executable (${EXE_NAME})")   
+    fwmessage(STATUS "make_executable (${ME_NAME})")   
     fwmessage(STATUS "------------------------------------------------------")
 	fwmessage(STATUS "  INSTALL                  = ${ME_INSTALL}")
 	fwmessage(STATUS "  CUDA                     = ${ME_CUDA}")
@@ -741,7 +741,7 @@ macro(make_executable)
 	
     
     # locate dependencies
-    realize_package_dependencies(PREFER_STATIC ${${ME_NAME}_LINK_AGAINST_STATIC} OUTPUT_ID PACKAGES ${ME_DEPENDENCY_PACKAGES})
+    realize_package_dependencies(PREFER_STATIC ${${ME_NAME}_LINK_AGAINST_STATIC} OUTPUT_ID PACKAGE PACKAGES ${ME_DEPENDENCY_PACKAGES})
     fwmessage(STATUS "PACKAGE_INCLUDE_DIRS     = ${PACKAGE_INCLUDE_DIRS}")
     fwmessage(STATUS "PACKAGE_LIBRARIES        = ${PACKAGE_LIBRARIES}")
     
