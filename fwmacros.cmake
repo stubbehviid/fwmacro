@@ -501,6 +501,10 @@ macro(make_library)
     fwmessage(STATUS "  INCLUDE_INSTALL_DIR       = ${ML_INCLUDE_INSTALL_DIR}")
     fwmessage(STATUS "  CMAKE_INSTALL_DIR         = ${ML_CMAKE_INSTALL_DIR}")
     
+	# select output library type
+	set(LIBRARY_TYPE "STATIC_AND_SHARED" CACHE STRING "Output library type (static, shared or both)")
+	set_property(CACHE LIBRARY_TYPE PROPERTY STRINGS STATIC SHARED STATIC_AND_SHARED)
+	
 	# copy some parameters
 	set(CORE_NAME ${ML_NAME})
 	    
