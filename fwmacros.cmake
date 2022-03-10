@@ -886,6 +886,7 @@ set(options "CUDA")
     if(MT_CUDA)
         make_executable(NAME tests 
                         CXX_SOURCE_FILES ${TEST_SOURCE_FILES}
+						PRECOMPILED_HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../include/${MT_LIB_NAME}.h"
                         DEPENDENCY_PACKAGES ${MT_DEPENDENCY_PACKAGES}
                         DEPENDENCY_LIBRARIES ${MT_DEPENDENCY_LIBRARIES}
                         DEPENDENCY_INCLUDE_DIRS ${MT_DEPENDENCY_INCLUDE_DIRS}
@@ -898,6 +899,7 @@ set(options "CUDA")
     else()
         make_executable(NAME tests 
                         CXX_SOURCE_FILES ${TEST_SOURCE_FILES}
+						PRECOMPILED_HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../include/${MT_LIB_NAME}.h"
                         DEPENDENCY_PACKAGES ${MT_DEPENDENCY_PACKAGES}
                         DEPENDENCY_LIBRARIES ${MT_DEPENDENCY_LIBRARIES}
                         DEPENDENCY_INCLUDE_DIRS ${MT_DEPENDENCY_INCLUDE_DIRS}
@@ -910,12 +912,7 @@ set(options "CUDA")
 											 "${${MT_LIB_NAME}_CONFIG_DIR}" 
 											 "${PROJECT_BINARY_DIR}"
 											)	# link to include files inside the source tree
-	target_link_libraries(tests Catch2::Catch2 ${LIB_NAME})
-    
-    # precompiled headers
-    if(USE_PRECOMPILED_HEADERS) 
-        target_precompile_headers(tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../include/${MT_LIB_NAME}.h" )
-    endif() 
+	target_link_libraries(tests Catch2::Catch2 ${LIB_NAME})    
         
     # add links to target library
     target_include_directories(tests PRIVATE ${${MT_LIB_NAME}_INCLUDE_DIR} ${${MT_LIB_NAME}_CONFIG_DIR} ${PROJECT_BINARY_DIR})
