@@ -204,11 +204,7 @@ macro(realize_package_dependencies)
         if(PC_FOUND)            
             list(APPEND ${DERPD_OUT_ID}_LIBRARIES ${PC_LIBRARIES})
             list(APPEND ${DERPD_OUT_ID}_INCLUDE_DIRS ${PC_INCLUDE_DIRS})
-        endif() 
-        
-        fwmessage(STATUS "DERPD_OUT_ID = ${DERPD_OUT_ID}")
-        fwmessage(STATUS "${DERPD_OUT_ID}_LIBRARIES  = ${${DERPD_OUT_ID}_LIBRARIES}")
-        fwmessage(STATUS "${DERPD_OUT_ID}_INCLUDE_DIRS   = ${${DERPD_OUT_ID}_INCLUDE_DIRS}")
+        endif()         
     endforeach()
     
     list(REMOVE_DUPLICATES ${DERPD_OUT_ID}_INCLUDE_DIRS)
