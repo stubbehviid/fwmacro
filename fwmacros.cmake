@@ -395,7 +395,6 @@ endmacro()
 #
 #   NAME                    <executable name>
 #   BIN_INSTALL_DIR         where to install binary executables <final destination will be <BIN_INSTALL_DIR>
-#   CMAKE_INSTALL_DIR       where to install cmake config files <final destination will be <CMAKE_INSTALL_DIR>/<NAME>
 #
 #   Note for all path input: if the distination is empty then the default GNU standard location with be used
 #                            if the specified path is relative to final output will go to <CMAKE_INSTALL_PREFIX>/<PATH>
@@ -403,25 +402,27 @@ macro(install_executable)
     # parse input
     set(options "")
     set(oneValueArgs NAME)
-    set(multiValueArgs BIN_INSTALL_DIR CMAKE_INSTALL_DIR)
-
+    set(multiValueArgs BIN_INSTALL_DIR )
     cmake_parse_arguments(IE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )    
     
-    fwmessage(STATUS "EXE_NAME      = ${IE_NAME}")
-        
+	fwmessage(STATUS "------------------------------------------------------")
+    fwmessage(STATUS "install_executable (${IE_NAME})")    
+    fwmessage(STATUS "------------------------------------------------------")
+    fwmessage(STATUS "  NAME                      = ${IE_NAME}")
+    fwmessage(STATUS "  BIN_INSTALL_DIR           = ${IE_BIN_INSTALL_DIR}")
+       
     # realize the apsolute path of the various installation targets
     realize_install_path(IE_BIN_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}")
-    realize_install_path(IE_CMAKE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake")
 
-    # generate paths relevant for the current library version (will be different for statis and shared lib versions
-    set(MODULE_BIN_INSTALL_DIR      "${IE_BIN_INSTALL_DIR}")
-    set(MODULE_CMAKE_INSTALL_DIR    "${IE_CMAKE_INSTALL_DIR}/${LIB_NAME}")
-
-    fwmessage(STATUS "BIN_INSTALL_DIR         = ${MODULE_BIN_INSTALL_DIR}")
-    fwmessage(STATUS "CMAKE_INSTALL_DIR       = ${MODULE_CMAKE_INSTALL_DIR}")
+	# tell where we are installing the exe
+    fwmessage(STATUS "BIN_INSTALL_DIR         = ${IE_BIN_INSTALL_DIR}")
     
     # Installation
-    install (TARGETS ${IE_NAME} RUNTIME DESTINATION ${MODULE_BIN_INSTALL_DIR} COMPONENT bin) 
+    install (TARGETS ${IE_NAME} RUNTIME DESTINATION ${BIN_INSTALL_DIR} COMPONENT bin) 
+	
+	fwmessage(STATUS "------------------------------------------------------")
+    fwmessage(STATUS "done install_executable (${IE_NAME})")    
+    fwmessage(STATUS "------------------------------------------------------")
 endmacro()
 
 
@@ -507,6 +508,8 @@ macro(make_library)
 	
 	# copy some parameters
 	set(CORE_NAME ${ML_NAME})
+	set(${CORE_NAME}_CONFIG_DIR ${CMAKE_BINARY_DIR})
+	set(${CORE_NAME}_BINARY_DIR ${CMAKE_BINARY_DIR})
 	    
     # initiate the list of include dirs
     set(PACKAGE_INCLUDE_DIRS)
@@ -709,97 +712,95 @@ macro(make_executable)
                        PRIVATE_INCLUDE_DIRS
                        CUDA_SOURCE_FILES
                        CUDA_HEADER_FILES
-                       BIN_INSTALL_DIR
-                       LIB_INSTALL_DIR
-                       INCLUDE_INSTALL_DIR
-                       CMAKE_INSTALL_DIR )
+                       BIN_INSTALL_DIR )
     cmake_parse_arguments(ME "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )    
-    
-    # grap the exe name
-    set(EXE_NAME ${ME_NAME}) 
-    
-    OPTION (LINK_TESTS_AGAINST_STATIC "Link unit tests against static version of library" ON)
-    
+        
     # tell what is being generated
     fwmessage(STATUS "------------------------------------------------------")
-    fwmessage(STATUS "Generating ${EXE_NAME} executable")   
+    fwmessage(STATUS "make_executable (${EXE_NAME})")   
     fwmessage(STATUS "------------------------------------------------------")
+	fwmessage(STATUS "  INSTALL                  = ${ME_INSTALL}")
+	fwmessage(STATUS "  CUDA                     = ${ME_CUDA}")
+	fwmessage(STATUS "  NAME                     = ${ME_NAME}")
+	fwmessage(STATUS "  CXX_SOURCE_FILES         = ${ME_CXX_SOURCE_FILES}")
+	fwmessage(STATUS "  CXX_HEADER_FILES         = ${ME_CXX_HEADER_FILES}")
+	fwmessage(STATUS "  PRECOMPILED_HEADER_FILES = ${ME_PRECOMPILED_HEADER_FILES}")
+	fwmessage(STATUS "  DEPENDENCY_PACKAGES      = ${ME_DEPENDENCY_PACKAGES}")
+	fwmessage(STATUS "  DEPENDENCY_LIBRARIES     = ${ME_DEPENDENCY_LIBRARIES}")
+	fwmessage(STATUS "  DEPENDENCY_INCLUDE_DIRS  = ${ME_DEPENDENCY_INCLUDE_DIRS}")
+	fwmessage(STATUS "  PRIVATE_INCLUDE_DIRS     = ${ME_PRIVATE_INCLUDE_DIRS}")
+	fwmessage(STATUS "  CUDA_SOURCE_FILES        = ${ME_CUDA_SOURCE_FILES}")
+	fwmessage(STATUS "  CUDA_HEADER_FILES        = ${ME_CUDA_HEADER_FILES}")
+	fwmessage(STATUS "  BIN_INSTALL_DIR          = ${ME_INSTALL}")
+	
+	# grap the exe name
+    set(EXE_NAME ${ME_NAME}) 
+    
+	# give option for how the exe should be linked 
+    OPTION (${ME_NAME}_LINK_AGAINST_STATIC "Prefer to link executable against static version of library" ON)
+	
     
     # locate dependencies
-    realize_package_dependencies(OUTPUT_ID PACKAGE PREFER_STATIC ${LINK_TESTS_AGAINST_STATIC} PACKAGES ${ME_DEPENDENCY_PACKAGES})
-    fwmessage(STATUS "PACKAGE_STATIC_INCLUDE_DIRS     = ${PACKAGE_STATIC_INCLUDE_DIRS}")
-    fwmessage(STATUS "PACKAGE_STATIC_LIBRARIES        = ${PACKAGE_STATIC_LIBRARIES}")
+    realize_package_dependencies(PREFER_STATIC ${${ME_NAME}_LINK_AGAINST_STATIC} OUTPUT_ID PACKAGES ${ME_DEPENDENCY_PACKAGES})
+    fwmessage(STATUS "PACKAGE_INCLUDE_DIRS     = ${PACKAGE_INCLUDE_DIRS}")
+    fwmessage(STATUS "PACKAGE_LIBRARIES        = ${PACKAGE_LIBRARIES}")
     
-    
-    fwmessage(STATUS "CXX_SOURCE_FILES        = ${ME_CXX_SOURCE_FILES}")
-    fwmessage(STATUS "CXX_HEADER_FILES        = ${ME_CXX_HEADER_FILES}")
-    fwmessage(STATUS "PACKAGE_INCLUDE_DIRS    = ${PACKAGE_INCLUDE_DIRS}")
-    fwmessage(STATUS "PACKAGE_LIBRARIES       = ${PACKAGE_LIBRARIES}")
-    fwmessage(STATUS "DEPENDENCY_PACKAGES     = ${ME_DEPENDENCY_PACKAGES}")
-    fwmessage(STATUS "DEPENDENCY_LIBRARIES    = ${ME_DEPENDENCY_LIBRARIES}")
-    fwmessage(STATUS "DEPENDENCY_INCLUDE_DIRS = ${ME_DEPENDENCY_INCLUDE_DIRS}")
-    fwmessage(STATUS "PRIVATE_INCLUDE_DIRS    = ${ME_PRIVATE_INCLUDE_DIRS}")
-    if(ME_CUDA)
-        fwmessage(STATUS "CXX_SOURCE_FILES        = ${ME_CUDA_SOURCE_FILES}")
-        fwmessage(STATUS "CXX_HEADER_FILES        = ${ME_CUDA_HEADER_FILES}")
-    endif()
-
     # define project files
     set(PROJECT_SOURCE_FILES)   # initiate PROJECT_SOURCE_FILES to empty
     list(APPEND PROJECT_SOURCE_FILES ${ME_CXX_SOURCE_FILES})
     list(APPEND PROJECT_SOURCE_FILES ${ME_CXX_HEADER_FILES})
 
-    #add cuda sullrt if requested
+    #add cuda runtime if requested
     if(ME_CUDA)
         # configure CUDA
         include(cuda)
-        
-        # set active CUDA flags
-        if(STATIC_LIB)
-            set(CMAKE_CUDA_FLAGS ${CMAKE_CUDA_FLAGS_STATIC})
-            set(CUDA_LIBRARIES ${CUDA_LIBRARIES_STATIC})
-        else()
-            set(CMAKE_CUDA_FLAGS ${CMAKE_CUDA_FLAGS_SHARED})
-            set(CUDA_LIBRARIES ${CUDA_LIBRARIES_SHARED})
-        endif()
-    
-        list(APPEND PROJECT_SOURCE_FILES ${ME_CUDA_SOURCE_FILES})
-        list(APPEND PROJECT_SOURCE_FILES ${ME_CUDA_HEADER_FILES})
-    
+            
+        list(APPEND PROJECT_SOURCE_FILES ${ML_CUDA_SOURCE_FILES})
+        list(APPEND PROJECT_HEADER_FILES ${ML_CUDA_HEADER_FILES})    
     endif()
 
     # create the library
-    fwmessage(STATUS "PROJECT_SOURCE_FILES    = ${PROJECT_SOURCE_FILES}")
+	fwmessage(STATUS "PROJECT_SOURCE_FILES     = ${PROJECT_SOURCE_FILES}")
     add_executable(${EXE_NAME} ${PROJECT_SOURCE_FILES})
     
+	# set configuration
+    set_target_cxx_config(TARGET ${EXE_NAME})
+    
+    if(ME_CUDA)
+        set_target_cuda_config(TARGET ${EXE_NAME})
+    endif()
+	
+	
     # set include and library dirs
-    target_include_directories(${EXE_NAME} PUBLIC   ${PACKAGE_INCLUDE_DIRS})        # include dirs needed for pagkages
-    target_include_directories(${EXE_NAME} PUBLIC   ${ME_DEPENDENCY_INCLUDE_DIRS})   # include dirs needed by specific non packet libraries
-    target_include_directories(${EXE_NAME} PUBLIC  ${PROJECT_SOURCE_DIR})               # add project source as private
-    target_include_directories(${EXE_NAME} PUBLIC  ${PROJECT_BINARY_DIR})               # add project binary as private
-    target_include_directories(${EXE_NAME} PUBLIC  ${ME_PRIVATE_INCLUDE_DIRS})           # add additional private include dirs (like ./include if the project include files are not found in the root)
+    target_include_directories(${EXE_NAME} PRIVATE   ${PACKAGE_INCLUDE_DIRS})        	# include dirs needed for pagkages
+    target_include_directories(${EXE_NAME} PRIVATE   ${ME_DEPENDENCY_INCLUDE_DIRS})   	# include dirs needed by specific non packet libraries
+    target_include_directories(${EXE_NAME} PRIVATE   ${PROJECT_SOURCE_DIR})             # add project source as private
+    target_include_directories(${EXE_NAME} PRIVATE   ${PROJECT_BINARY_DIR})             # add project binary as private
+    target_include_directories(${EXE_NAME} PRIVATE   ${ME_PRIVATE_INCLUDE_DIRS})        # add additional private include dirs (like ./include if the project include files are not found in the root)
             
-    target_link_libraries(${EXE_NAME} ${PACKAGE_LIBRARIES} ${ME_DEPENDENCY_LIBRARIES})   # link resolved packages and specific input list of libraries
+    target_link_libraries(${EXE_NAME} ${PACKAGE_LIBRARIES} ${ME_DEPENDENCY_LIBRARIES})  # link resolved packages and specific input list of libraries
     
     # precompiled headers
     if(USE_PRECOMPILED_HEADERS)
         if("${ME_PRECOMPILED_HEADER_FILES}" STREQUAL "")
-            target_precompile_headers(${LIB_NAME} PRIVATE ${HEADER_FILES})
+            target_precompile_headers(${EXE_NAME} PRIVATE ${HEADER_FILES})
         else()
-            target_precompile_headers(${LIB_NAME} PRIVATE ${ME_PRECOMPILED_HEADER_FILES}) 
+            target_precompile_headers(${EXE_NAME} PRIVATE ${ME_PRECOMPILED_HEADER_FILES}) 
         endif()
     endif()
-    
-    # compile options
-    target_compile_features(${EXE_NAME} PUBLIC ${CXX_COMPILER_STANDARD})
-    
+        
     # set target properties
     set_target_properties(${EXE_NAME} PROPERTIES VERSION "${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}.${CMAKE_PROJECT_VERSION_PATCH}")
 
     #handle installation
     if(ME_INSTALL)
-        #install_executable(NAME ${EXE_NAME} BIN_INSTALL_DIR ${ME_BIN_INSTALL_DIR} CMAKE_INSTALL_DIR ${ME_CMAKE_INSTALL_DIR})
+        install_executable(NAME ${EXE_NAME} BIN_INSTALL_DIR ${ME_BIN_INSTALL_DIR})
     endif()    
+	
+	# tell what is being generated
+    fwmessage(STATUS "------------------------------------------------------")
+    fwmessage(STATUS "done make_executable (${EXE_NAME})")   
+    fwmessage(STATUS "------------------------------------------------------")	
 endmacro()
 
 # macro: make_library_tests
@@ -830,8 +831,17 @@ set(options "CUDA")
 
     # tell what is being generated
     fwmessage(STATUS "------------------------------------------------------")
-    fwmessage(STATUS "Generating tests for ${MT_LIB_NAME}")  
+    fwmessage(STATUS "make_library_tests (${MT_LIB_NAME})")  
     fwmessage(STATUS "------------------------------------------------------")
+	fwmessage(STATUS "  CUDA                      = ${MT_CUDA}")
+	fwmessage(STATUS "  LIB_NAME                  = ${MT_LIB_NAME}")
+	fwmessage(STATUS "  TEST_MASK                 = ${MT_TEST_MASK}")
+	fwmessage(STATUS "  DEPENDENCY_PACKAGES       = ${MT_DEPENDENCY_PACKAGES}")
+	fwmessage(STATUS "  DEPENDENCY_LIBRARIES      = ${MT_DEPENDENCY_LIBRARIES}")
+	fwmessage(STATUS "  DEPENDENCY_INCLUDE_DIRS   = ${MT_DEPENDENCY_INCLUDE_DIRS}")
+	fwmessage(STATUS "  PRIVATE_INCLUDE_DIRS      = ${MT_PRIVATE_INCLUDE_DIRS}")
+	fwmessage(STATUS "  CUDA_SOURCE_FILES         = ${MT_CUDA_SOURCE_FILES}")
+	fwmessage(STATUS "  CUDA_HEADER_FILES         = ${MT_CUDA_HEADER_FILES}")
 
     # enable testing 
     enable_testing ()
@@ -869,14 +879,6 @@ set(options "CUDA")
         FetchContent_MakeAvailable(Catch2)
     endif()
 
-    # set up test include and link configuration
-    set(TEST_LIBRARIES ${MT_DEPENDENCY_LIBRARIES})
-    list(APPEND TEST_LIBRARIES ${LIB_NAME})
-    fwmessage(STATUS "TEST_LIBRARIES   = ${TEST_LIBRARIES}")
-    
-    set(TEST_INCLUDE_DIRS ${LIB_INCLUDE_DIR})   
-    list(APPEND TEST_INCLUDE_DIRS ${MT_DEPENDENCY_INCLUDE_DIRS})
-
     # find the test source files
     file(GLOB TEST_SOURCE_FILES RELATIVE  ${CMAKE_CURRENT_SOURCE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/${MT_TEST_MASK}")
     fwmessage(STATUS "Found test source files    = ${TEST_SOURCE_FILES}")
@@ -902,10 +904,17 @@ set(options "CUDA")
                         PRIVATE_INCLUDE_DIRS ${MT_PRIVATE_INCLUDE_DIRS}
                         )
     endif()
+	
+	# add reference to the target library itself
+	target_include_directories(tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../include"
+											 "${${MT_LIB_NAME}_CONFIG_DIR}" 
+											 "${PROJECT_BINARY_DIR}"
+											)	# link to include files inside the source tree
+	target_link_libraries(tests Catch2::Catch2 ${LIB_NAME})
     
     # precompiled headers
     if(USE_PRECOMPILED_HEADERS) 
-        target_precompile_headers(tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../include/${MT_LIB_NAME}.h")
+        target_precompile_headers(tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../include/${MT_LIB_NAME}.h" )
     endif() 
         
     # add links to target library
