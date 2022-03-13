@@ -778,7 +778,7 @@ macro(make_executable)
     target_include_directories(${EXE_NAME} PRIVATE   ${PROJECT_BINARY_DIR})             # add project binary as private
     target_include_directories(${EXE_NAME} PRIVATE   ${ME_PRIVATE_INCLUDE_DIRS})        # add additional private include dirs (like ./include if the project include files are not found in the root)
             
-    target_link_libraries(${EXE_NAME} ${PACKAGE_LIBRARIES} ${ME_DEPENDENCY_LIBRARIES})  # link resolved packages and specific input list of libraries
+    target_link_libraries(${EXE_NAME} PRIVATE ${PACKAGE_LIBRARIES} ${ME_DEPENDENCY_LIBRARIES})  # link resolved packages and specific input list of libraries
     
     # precompiled headers
     if(USE_PRECOMPILED_HEADERS)
@@ -912,12 +912,11 @@ set(options "CUDA")
 											 "${${MT_LIB_NAME}_CONFIG_DIR}" 
 											 "${PROJECT_BINARY_DIR}"
 											)	# link to include files inside the source tree
-	target_link_libraries(tests Catch2::Catch2 ${LIB_NAME})    
         
     # add links to target library
     target_include_directories(tests PRIVATE ${${MT_LIB_NAME}_INCLUDE_DIR} ${${MT_LIB_NAME}_CONFIG_DIR} ${PROJECT_BINARY_DIR})
     target_link_directories(tests PRIVATE ${${MT_LIB_NAME}_BINARY_DIR})
-    target_link_libraries(tests Catch2::Catch2 ${LIB_NAME})
+    target_link_libraries(tests PRIVATE Catch2::Catch2 ${LIB_NAME})
     
     # work around for internal catch2 installation
     if(NOT USE_EXTERNAL_CATCH2_INSTALL)
