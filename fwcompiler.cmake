@@ -58,6 +58,10 @@ if(USE_MSVC_COMPILER)
 endif()
 
 if(USE_CLANG_COMPILER)
+	# select stdlib
+	set(CLANG_STDLIB "stdlibc++" CACHE STRING "Select the version of the C++ STL to be used")
+	set_property(CACHE CLANG_STDLIB PROPERTY STRINGS libc++ stdlibc++)	
+
 	OPTION( USE_Werror "Treat warnings as errors -Werror" OFF)
 	OPTION( USE_Wall "Use -Wall" ON)
 	OPTION( USE_Wextra "Use -Wextra" OFF)
@@ -185,6 +189,9 @@ macro(set_target_cxx_config)
 			target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:/MD /DNDEBUG /O2 /Ob2 /Oi /Ot>)
 		endif()
 		
+		# enable RTTI
+		#target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/GR}>)	
+		
 		# warning level
 		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/W${MSVC_WARNING_LEVEL}>)	
 		
@@ -254,6 +261,7 @@ macro(set_target_cxx_config)
 		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-declarations>)
 		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wno-ignored-attributes>)
 
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-stdlib=${CLANG_STDLIB}>)
 		
 			
 		# Warnings
