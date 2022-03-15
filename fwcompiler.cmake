@@ -59,8 +59,8 @@ endif()
 
 if(USE_CLANG_COMPILER)
 	# select stdlib
-	set(CLANG_STDLIB "stdlibc++" CACHE STRING "Select the version of the C++ STL to be used")
-	set_property(CACHE CLANG_STDLIB PROPERTY STRINGS libc++ stdlibc++)	
+	set(CLANG_STDLIB "default" CACHE STRING "Select the version of the C++ STL to be used")
+	set_property(CACHE CLANG_STDLIB PROPERTY STRINGS default libc++ stdlibc++)	
 
 	OPTION( USE_Werror "Treat warnings as errors -Werror" OFF)
 	OPTION( USE_Wall "Use -Wall" ON)
@@ -261,7 +261,10 @@ macro(set_target_cxx_config)
 		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-declarations>)
 		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wno-ignored-attributes>)
 
-		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-stdlib=${CLANG_STDLIB}>)
+
+		if(NOT "${CLANG_STDLIB}" STREQUAL "default")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-stdlib=${CLANG_STDLIB}>)
+		endif()
 		
 			
 		# Warnings
