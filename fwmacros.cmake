@@ -438,7 +438,9 @@ endmacro()
 #   CXX_HEADER_FILES                        list of c++ header files
 #   PRECOMPILED_HEADER_FILES                list of include files to be used for precompiled headers (If not set CXX_HEADER_FILES will be used if precompiled headers are active)
 #   DEPENDENCY_PACKAGES                     list of dependency packages (libraries with cmake config)
-#   DEPENDENCY_LIBRARIES                            list of library dependencies (librarus without cmake config)
+#   DEPENDENCY_LIBRARIES                    list of library dependencies (librarus without cmake config) - relevant for both STATIC and SHARED
+#   STATIC_DEPENDENCY_LIBRARIES             list of library dependencies (librarus without cmake config) - relevant only for STATIC
+#   SHARED_DEPENDENCY_LIBRARIES             list of library dependencies (librarus without cmake config) - relevant only for SHARED
 #   DEPENDENCY_INCLUDE_DIRS                 list of filters containg includefiles needed by the library
 #
 #   PRIVATE_INCLUDE_DIRS                    list of private incluyde directories (include files only needed for the compilation of trhe lib itself)
@@ -471,6 +473,8 @@ macro(make_library)
                        PRECOMPILED_HEADER_FILES
                        DEPENDENCY_PACKAGES 
                        DEPENDENCY_LIBRARIES 
+					   STATIC_DEPENDENCY_LIBRARIES 
+					   SHARED_DEPENDENCY_LIBRARIES 
                        DEPENDENCY_INCLUDE_DIRS
                        PRIVATE_INCLUDE_DIRS
                        CUDA_SOURCE_FILES
@@ -485,22 +489,24 @@ macro(make_library)
     fwmessage(STATUS "------------------------------------------------------")
     fwmessage(STATUS "make_library")    
     fwmessage(STATUS "------------------------------------------------------")
-    fwmessage(STATUS "  INSTALL                   = ${ML_INSTALL}")
-    fwmessage(STATUS "  CUDA                      = ${ML_CUDA}")
-    fwmessage(STATUS "  NAME                      = ${ML_NAME}")
-    fwmessage(STATUS "  TYPE                      = ${ML_TYPE}")
-    fwmessage(STATUS "  CXX_SOURCE_FILES          = ${ML_CXX_SOURCE_FILES}")
-    fwmessage(STATUS "  CXX_HEADER_FILES          = ${ML_CXX_HEADER_FILES}")
-    fwmessage(STATUS "  PRECOMPILED_HEADER_FILES  = ${ML_PRECOMPILED_HEADER_FILES}")
-    fwmessage(STATUS "  DEPENDENCY_PACKAGES       = ${ML_DEPENDENCY_PACKAGES}")
-    fwmessage(STATUS "  DEPENDENCY_LIBRARIES      = ${ML_DEPENDENCY_LIBRARIES}")
-    fwmessage(STATUS "  DEPENDENCY_INCLUDE_DIRS   = ${ML_DEPENDENCY_INCLUDE_DIRS}")
-    fwmessage(STATUS "  PRIVATE_INCLUDE_DIRS      = ${ML_PRIVATE_INCLUDE_DIRS}")
-    fwmessage(STATUS "  CUDA_SOURCE_FILES         = ${ML_CUDA_SOURCE_FILES}")
-    fwmessage(STATUS "  CUDA_HEADER_FILES         = ${ML_CUDA_HEADER_FILES}")
-    fwmessage(STATUS "  BIN_INSTALL_DIR           = ${ML_BIN_INSTALL_DIR}")
-    fwmessage(STATUS "  INCLUDE_INSTALL_DIR       = ${ML_INCLUDE_INSTALL_DIR}")
-    fwmessage(STATUS "  CMAKE_INSTALL_DIR         = ${ML_CMAKE_INSTALL_DIR}")
+    fwmessage(STATUS "  INSTALL                     = ${ML_INSTALL}")
+    fwmessage(STATUS "  CUDA                        = ${ML_CUDA}")
+    fwmessage(STATUS "  NAME                        = ${ML_NAME}")
+    fwmessage(STATUS "  TYPE                        = ${ML_TYPE}")
+    fwmessage(STATUS "  CXX_SOURCE_FILES            = ${ML_CXX_SOURCE_FILES}")
+    fwmessage(STATUS "  CXX_HEADER_FILES            = ${ML_CXX_HEADER_FILES}")
+    fwmessage(STATUS "  PRECOMPILED_HEADER_FILES    = ${ML_PRECOMPILED_HEADER_FILES}")
+    fwmessage(STATUS "  DEPENDENCY_PACKAGES         = ${ML_DEPENDENCY_PACKAGES}")
+    fwmessage(STATUS "  DEPENDENCY_LIBRARIES        = ${ML_DEPENDENCY_LIBRARIES}")
+	fwmessage(STATUS "  STATIC_DEPENDENCY_LIBRARIES = ${ML_STATIC_DEPENDENCY_LIBRARIES}")
+	fwmessage(STATUS "  SHARED_DEPENDENCY_LIBRARIES = ${ML_SHARED_DEPENDENCY_LIBRARIES}")
+    fwmessage(STATUS "  DEPENDENCY_INCLUDE_DIRS     = ${ML_DEPENDENCY_INCLUDE_DIRS}")
+    fwmessage(STATUS "  PRIVATE_INCLUDE_DIRS        = ${ML_PRIVATE_INCLUDE_DIRS}")
+    fwmessage(STATUS "  CUDA_SOURCE_FILES           = ${ML_CUDA_SOURCE_FILES}")
+    fwmessage(STATUS "  CUDA_HEADER_FILES           = ${ML_CUDA_HEADER_FILES}")
+    fwmessage(STATUS "  BIN_INSTALL_DIR             = ${ML_BIN_INSTALL_DIR}")
+    fwmessage(STATUS "  INCLUDE_INSTALL_DIR         = ${ML_INCLUDE_INSTALL_DIR}")
+    fwmessage(STATUS "  CMAKE_INSTALL_DIR           = ${ML_CMAKE_INSTALL_DIR}")
     
 	# select output library type
 	set(LIBRARY_TYPE "STATIC_AND_SHARED" CACHE STRING "Output library type (static, shared or both)")
@@ -617,7 +623,7 @@ macro(make_library)
         target_include_directories(${SHARED_LIB_MAME} INTERFACE ${PACKAGE_SHARED_INCLUDE_DIRS} ${ML_DEPENDENCY_INCLUDE_DIRS})
         
         # library linkage
-        target_link_libraries(${SHARED_LIB_MAME} PUBLIC ${PACKAGE_SHARED_LIBRARIES} ${ML_DEPENDENCY_LIBRARIES})
+        target_link_libraries(${SHARED_LIB_MAME} PUBLIC ${PACKAGE_SHARED_LIBRARIES} ${ML_DEPENDENCY_LIBRARIES} ${ML_SHARED_DEPENDENCY_LIBRARIES})
                                 
         #handle installation
         if(ML_INSTALL)
@@ -649,7 +655,7 @@ macro(make_library)
         target_include_directories(${STATIC_LIB_MAME} INTERFACE ${PACKAGE_SHARED_INCLUDE_DIRS} ${ML_DEPENDENCY_INCLUDE_DIRS})
         
         # library linkage
-        target_link_libraries(${STATIC_LIB_MAME} PUBLIC ${PACKAGE_STATIC_LIBRARIES} ${ML_DEPENDENCY_LIBRARIES})
+        target_link_libraries(${STATIC_LIB_MAME} PUBLIC ${PACKAGE_STATIC_LIBRARIES} ${ML_DEPENDENCY_LIBRARIES} ${ML_STATIC_DEPENDENCY_LIBRARIES})
                 
                     
         #handle installation
