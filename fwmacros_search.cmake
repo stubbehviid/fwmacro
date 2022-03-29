@@ -37,11 +37,14 @@ macro(locate_library)
 	if(NOT "${LL_LIB_NAME}" STREQUAL "")
 	
 		if(WIN32)
-			set(PATHS ${CMAKE_INSTALL_PREFIX} "c:/Program Files")
+			set(LL_PATHS ${CMAKE_INSTALL_PREFIX} "c:/Program Files")
 		else()
-			set(PATHS ${CMAKE_INSTALL_PREFIX} /usr/lib /usr/local/lib /opt/lib /usr/lib/x86_64-linux-gnu)
+			set(LL_PATHS ${CMAKE_INSTALL_PREFIX} /usr/lib /usr/local/lib /opt/lib /usr/lib/x86_64-linux-gnu)
 		endif()
-		fwmessage(STATUS "       - PATH = ${PATHS}")
+		fwmessage(STATUS "       - PATH = ${LL_PATHS}")
+	
+		unset(LL_NAMES_RELEASE)
+		unset(LL_NAMES_DEBUG)
 	
 		if(LL_PREFER_SHARED)
 			set(LL_NAMES_RELEASE "${LL_LIB_NAME}.so" "${LL_LIB_NAME}*.so" "lib${LL_LIB_NAME}.so" "lib${LL_LIB_NAME}*.so" 
@@ -67,11 +70,11 @@ macro(locate_library)
 		fwmessage(STATUS "       - LL_NAMES_DEBUG   = ${LL_NAMES_DEBUG}")
 				
 		# locate shared release library
-		unset(LL_LIB_RELEASE)
-		find_library(LL_LIB_RELEASE NAMES ${LL_NAMES_RELEASE} PATHS ${PATHS} NO_CACHE)
+		set(LL_LIB_RELEASE LL_LIB_RELEASE-NOTFOUND)
+		find_library(LL_LIB_RELEASE NAMES ${LL_NAMES_RELEASE} PATHS ${LL_PATHS} NO_CACHE)
 		
-		unset(LL_LIB_DEBUG)
-		find_library(LL_LIB_DEBUG NAMES ${LL_NAMES_DEBUG} PATHS ${PATHS} NO_CACHE)
+		set(LL_LIB_DEBUG LL_LIB_DEBUG-NOTFOUND)
+		find_library(LL_LIB_DEBUG NAMES ${LL_NAMES_DEBUG} PATHS ${LL_PATHS} NO_CACHE)
 				
 		if(NOT EXISTS ${LL_LIB_DEBUG})
 			set(LL_LIB_DEBUG ${LL_LIB_RELEASE})
