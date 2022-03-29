@@ -39,26 +39,39 @@ macro(locate_library)
 		if(WIN32)
 			set(PATHS ${CMAKE_INSTALL_PREFIX} "c:/Program Files")
 		else()
-			set(PATHS ${CMAKE_INSTALL_PREFIX} "/usr/lib" "/usr/local/lib" "/opt/lib")
+			set(PATHS ${CMAKE_INSTALL_PREFIX} /usr/lib /usr/local/lib /opt/lib /usr/lib/x86_64-linux-gnu)
 		endif()
 		fwmessage(STATUS "       - PATH = ${PATHS}")
 	
 		if(LL_PREFER_SHARED)
-			set(LL_NAMES_RELEASE "${LL_LIB_NAME}.so" "lib${LL_LIB_NAME}.so" "${LL_LIB_NAME}.lib" "lib${LL_LIB_NAME}.lib" "${LL_LIB_NAME}.a" "lib${LL_LIB_NAME}.a" "${LL_LIB_NAME}_static.lib" "lib${LL_LIB_NAME}_static.lib")
-			set(LL_NAMES_DEBUG   "${LL_LIB_NAME}d.so" "lib${LL_LIB_NAME}d.so" "${LL_LIB_NAME}d.lib" "lib${LL_LIB_NAME}d.lib" "${LL_LIB_NAME}d.a" "lib${LL_LIB_NAME}d.a" "${LL_LIB_NAME}_staticd.lib" "lib${LL_LIB_NAME}_staticd.lib")
+			set(LL_NAMES_RELEASE "${LL_LIB_NAME}.so" "${LL_LIB_NAME}*.so" "lib${LL_LIB_NAME}.so" "lib${LL_LIB_NAME}*.so" 
+			                     "${LL_LIB_NAME}.lib" "${LL_LIB_NAME}*.lib" "lib${LL_LIB_NAME}.lib" "lib${LL_LIB_NAME}*.lib"
+								 "${LL_LIB_NAME}.a" "${LL_LIB_NAME}*.a" "lib${LL_LIB_NAME}.a" "lib${LL_LIB_NAME}*.a"
+								 "${LL_LIB_NAME}_static.lib" "lib${LL_LIB_NAME}_static.lib")
+			set(LL_NAMES_DEBUG   "${LL_LIB_NAME}d.so" "${LL_LIB_NAME}d*.so" "lib${LL_LIB_NAME}d.so" "lib${LL_LIB_NAME}d*.so" 
+			                     "${LL_LIB_NAME}d.lib" "${LL_LIB_NAME}d*.lib" "lib${LL_LIB_NAME}d.lib" "lib${LL_LIB_NAME}d*.lib"
+								 "${LL_LIB_NAME}d.a" "${LL_LIB_NAME}d*.a" "lib${LL_LIB_NAME}d.a" "lib${LL_LIB_NAME}d*.a"
+								 "${LL_LIB_NAME}_staticd.lib" "lib${LL_LIB_NAME}_staticd.lib")
+			
 		else()
-			set(LL_NAMES_RELEASE "${LL_LIB_NAME}.a" "lib${LL_LIB_NAME}.a" "${LL_LIB_NAME}_static.lib" "lib${LL_LIB_NAME}_static.lib" "${LL_LIB_NAME}.so" "lib${LL_LIB_NAME}.so" "${LL_LIB_NAME}.lib" "lib${LL_LIB_NAME}.lib")
-			set(LL_NAMES_DEBUG   "${LL_LIB_NAME}d.a" "lib${LL_LIB_NAME}d.a" "${LL_LIB_NAME}_staticd.lib" "lib${LL_LIB_NAME}_staticd.lib" "${LL_LIB_NAME}d.so" "lib${LL_LIB_NAME}d.so" "${LL_LIB_NAME}d.lib" "lib${LL_LIB_NAME}d.lib")
+			set(LL_NAMES_RELEASE "${LL_LIB_NAME}.a" "${LL_LIB_NAME}*.a" "lib${LL_LIB_NAME}.a" "lib${LL_LIB_NAME}*.a"
+								 "${LL_LIB_NAME}_static.lib" "lib${LL_LIB_NAME}_static.lib"
+								 "${LL_LIB_NAME}.so" "${LL_LIB_NAME}*.so" "lib${LL_LIB_NAME}.so" "lib${LL_LIB_NAME}*.so" 
+			                     "${LL_LIB_NAME}.lib" "${LL_LIB_NAME}*.lib" "lib${LL_LIB_NAME}.lib" "lib${LL_LIB_NAME}*.lib")
+			set(LL_NAMES_DEBUG   "${LL_LIB_NAME}d.a" "${LL_LIB_NAME}d*.a" "lib${LL_LIB_NAME}d.a" "lib${LL_LIB_NAME}d*.a"
+								 "${LL_LIB_NAME}_static.lib" "lib${LL_LIB_NAME}_static.lib"
+								 "${LL_LIB_NAME}d.so" "${LL_LIB_NAME}d*.so" "lib${LL_LIB_NAME}d.so" "lib${LL_LIB_NAME}d*.so" 
+			                     "${LL_LIB_NAME}d.lib" "${LL_LIB_NAME}d*.lib" "lib${LL_LIB_NAME}d.lib" "lib${LL_LIB_NAME}d*.lib")		
 		endif()
 		fwmessage(STATUS "       - LL_NAMES_RELEASE = ${LL_NAMES_RELEASE}")
 		fwmessage(STATUS "       - LL_NAMES_DEBUG   = ${LL_NAMES_DEBUG}")
 				
 		# locate shared release library
 		unset(LL_LIB_RELEASE)
-		find_library(NO_CACHE LL_LIB_RELEASE NAMES ${LL_NAMES_RELEASE} PATHS ${PATHS})
+		find_library(LL_LIB_RELEASE NAMES ${LL_NAMES_RELEASE} PATHS ${PATHS} NO_CACHE)
 		
 		unset(LL_LIB_DEBUG)
-		find_library(NO_CACHE LL_LIB_DEBUG NAMES ${LL_NAMES_DEBUG} PATHS ${PATHS})
+		find_library(LL_LIB_DEBUG NAMES ${LL_NAMES_DEBUG} PATHS ${PATHS} NO_CACHE)
 				
 		if(NOT EXISTS ${LL_LIB_DEBUG})
 			set(LL_LIB_DEBUG ${LL_LIB_RELEASE})
@@ -66,11 +79,6 @@ macro(locate_library)
 		
 		fwmessage(STATUS "       - LL_LIB_RELEASE = ${LL_LIB_RELEASE}")
 		fwmessage(STATUS "       - LL_LIB_DEBUG   = ${LL_LIB_DEBUG}")
-		
-		message(STATUS "       - LL_LIB_RELEASE = ${LL_LIB_RELEASE}")
-		message(STATUS "       - LL_LIB_DEBUG   = ${LL_LIB_DEBUG}")
-		
-		
 		
 		if(LL_PREFER_SHARED)
 			set(LL_LIB_RELEASE_LABEL 	"${LL_LIB_NAME}_SHARED_LIBRARY_RELEASE")
@@ -82,11 +90,11 @@ macro(locate_library)
 		
 		
 		
-		set(${LL_LIB_RELEASE_LABEL} ${LL_LIB_RELEASE} CACHE PATH "Location of ${LIB_NAME} library (release)")
-		set(${LL_LIB_DEBUG_LABEL}   ${LL_LIB_DEBUG} CACHE PATH "Location of ${LIB_NAME} library (debug)")
+		set(${LL_LIB_RELEASE_LABEL} ${LL_LIB_RELEASE} CACHE FILEPATH "Location of ${LIB_NAME} library (release)")
+		set(${LL_LIB_DEBUG_LABEL}   ${LL_LIB_DEBUG} CACHE FILEPATH "Location of ${LIB_NAME} library (debug)")
 		
-		message(STATUS "       - ${LL_LIB_RELEASE_LABEL} = ${${LL_LIB_RELEASE_LABEL}}")
-		message(STATUS "       - ${LL_LIB_DEBUG_LABEL}   = ${${LL_LIB_DEBUG_LABEL}}")
+		fwmessage(STATUS "       - ${LL_LIB_RELEASE_LABEL} = ${${LL_LIB_RELEASE_LABEL}}")
+		fwmessage(STATUS "       - ${LL_LIB_DEBUG_LABEL}   = ${${LL_LIB_DEBUG_LABEL}}")
 		
 		
 		if(EXISTS ${${LL_LIB_RELEASE_LABEL}})
