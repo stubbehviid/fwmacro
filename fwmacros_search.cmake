@@ -39,7 +39,7 @@ macro(locate_library)
 		if(WIN32)
 			set(LL_PATHS ${CMAKE_INSTALL_PREFIX} "c:/Program Files")
 		else()
-			set(LL_PATHS ${CMAKE_INSTALL_PREFIX} /usr/lib /usr/local/lib /opt/lib /usr/lib/x86_64-linux-gnu)
+			set(LL_PATHS /usr/local/lib /opt/lib /usr/lib /usr/lib/x86_64-linux-gnu ${CMAKE_INSTALL_PREFIX})
 		endif()
 		fwmessage(STATUS "       - PATH = ${LL_PATHS}")
 	
