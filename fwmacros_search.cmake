@@ -36,16 +36,24 @@ macro(locate_library)
 	# search for library
 	if(NOT "${LL_LIB_NAME}" STREQUAL "")
 	
+		# define the variable used to cache the library paths
+		if(LL_PREFER_SHARED)
+			set(LL_LIB_RELEASE_LABEL 	"${LL_LIB_NAME}_SHARED_LIBRARY_RELEASE")
+			set(LL_LIB_DEBUG_LABEL 		"${LL_LIB_NAME}_SHARED_LIBRARY_DEBUG")
+		else()
+			set(LL_LIB_RELEASE_LABEL 	"${LL_LIB_NAME}_STATIC_LIBRARY_RELEASE")
+			set(LL_LIB_DEBUG_LABEL 		"${LL_LIB_NAME}_STATIC_LIBRARY_DEBUG")
+		endif()
+	
+		#define the list of input folders for the search
 		if(WIN32)
 			set(LL_PATHS ${CMAKE_INSTALL_PREFIX} "c:/Program Files")
 		else()
 			set(LL_PATHS /usr/local/lib /opt/lib /usr/lib /usr/lib/x86_64-linux-gnu ${CMAKE_INSTALL_PREFIX})
 		endif()
 		fwmessage(STATUS "       - PATH = ${LL_PATHS}")
-	
-		unset(LL_NAMES_RELEASE)
-		unset(LL_NAMES_DEBUG)
-	
+		
+		# define lists of search therms
 		if(LL_PREFER_SHARED)
 			set(LL_NAMES_RELEASE "${LL_LIB_NAME}.so"          "lib${LL_LIB_NAME}.so"  
 			                     "${LL_LIB_NAME}.lib"         "lib${LL_LIB_NAME}.lib" 
@@ -69,12 +77,25 @@ macro(locate_library)
 		fwmessage(STATUS "       - LL_NAMES_RELEASE = ${LL_NAMES_RELEASE}")
 		fwmessage(STATUS "       - LL_NAMES_DEBUG   = ${LL_NAMES_DEBUG}")
 				
-		# locate shared release library
-		set(LL_LIB_RELEASE LL_LIB_RELEASE-NOTFOUND)
-		find_library(LL_LIB_RELEASE NAMES ${LL_NAMES_RELEASE} PATHS ${LL_PATHS} NO_CACHE)
+		if(NOT EXISTS ${${LL_LIB_RELEASE_LABEL}})
+			fwmessage(STATUS "Searching for ${LL_LIB_NAME} - release")
+			# locate release library
+			set(LL_LIB_RELEASE LL_LIB_RELEASE-NOTFOUND)
+			find_library(LL_LIB_RELEASE NAMES ${LL_NAMES_RELEASE} PATHS ${LL_PATHS} NO_CACHE)
+		else()
+			fwmessage(STATUS "Using cached location for ${LL_LIB_NAME} - release")
+			set(LL_LIB_RELEASE  ${${LL_LIB_RELEASE_LABEL}})
+		endif()
 		
-		set(LL_LIB_DEBUG LL_LIB_DEBUG-NOTFOUND)
-		find_library(LL_LIB_DEBUG NAMES ${LL_NAMES_DEBUG} PATHS ${LL_PATHS} NO_CACHE)
+		if(NOT EXISTS ${${LL_LIB_DEBUG_LABEL}})
+			fwmessage(STATUS "Searching for ${LL_LIB_NAME} - debug")
+			# locate debug library
+			set(LL_LIB_DEBUG LL_LIB_DEBUG-NOTFOUND)
+			find_library(LL_LIB_DEBUG NAMES ${LL_NAMES_DEBUG} PATHS ${LL_PATHS} NO_CACHE)
+		else()
+			fwmessage(STATUS "Using cached location for ${LL_LIB_NAME} - debug")
+			set(LL_LIB_DEBUG  ${${LL_LIB_DEBUG_LABEL}})
+		endif()
 				
 		if(NOT EXISTS ${LL_LIB_DEBUG})
 			set(LL_LIB_DEBUG ${LL_LIB_RELEASE})
@@ -82,16 +103,6 @@ macro(locate_library)
 		
 		fwmessage(STATUS "       - LL_LIB_RELEASE = ${LL_LIB_RELEASE}")
 		fwmessage(STATUS "       - LL_LIB_DEBUG   = ${LL_LIB_DEBUG}")
-		
-		if(LL_PREFER_SHARED)
-			set(LL_LIB_RELEASE_LABEL 	"${LL_LIB_NAME}_SHARED_LIBRARY_RELEASE")
-			set(LL_LIB_DEBUG_LABEL 		"${LL_LIB_NAME}_SHARED_LIBRARY_DEBUG")
-		else()
-			set(LL_LIB_RELEASE_LABEL 	"${LL_LIB_NAME}_STATIC_LIBRARY_RELEASE")
-			set(LL_LIB_DEBUG_LABEL 		"${LL_LIB_NAME}_STATIC_LIBRARY_DEBUG")
-		endif()
-		
-		
 		
 		set(${LL_LIB_RELEASE_LABEL} ${LL_LIB_RELEASE} CACHE FILEPATH "Location of ${LIB_NAME} library (release)")
 		set(${LL_LIB_DEBUG_LABEL}   ${LL_LIB_DEBUG} CACHE FILEPATH "Location of ${LIB_NAME} library (debug)")
