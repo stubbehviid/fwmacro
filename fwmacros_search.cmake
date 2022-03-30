@@ -131,34 +131,46 @@ macro(locate_library)
 	# search for include
 	if(NOT "${LL_LIB_INCLUDE}" STREQUAL "")
 	
-		set(PATHS ${CMAKE_INSTALL_PREFIX})
-		if(WIN32)
-			list(APPEND PATHS "c:/Program Files")
-		else()
-			list(APPEND PATHS "/usr/local/include" "/usr/include" "/opt/include" "~/include")
+		set(LL_INCLUDE_DIR "${${LL_LIB_NAME}_INCLUDE_DIR}")
+		fwmessage(STATUS "       - existing LL_INCLUDE_DIR = ${LL_INCLUDE_DIR}")
+		
+		if(NOT EXISTS ${LL_INCLUDE_DIR}/${LL_LIB_INCLUDE})
+		
+			# Where to look for include file
+			set(PATHS ${CMAKE_INSTALL_PREFIX})
+			if(WIN32)
+				list(APPEND PATHS "c:/Program Files")
+			else()
+				list(APPEND PATHS "/usr/local/include" "/usr/include" "/opt/include" "~/include")
+			endif()
+		
+			unset(LL_INCLUDE_FILE)	
+			find_file (LL_INCLUDE_FILE "${LL_LIB_INCLUDE}" PATHS ${PATHS} PATH_SUFFIXES ${LL_LIB_NAME} lib${LL_LIB_NAME} NO_CACHE)	
+			fwmessage(STATUS "       - LL_INCLUDE_FILE = ${LL_INCLUDE_FILE}")
+		
+			if(EXISTS ${LL_INCLUDE_FILE})	
+				
+				# extract directory
+				unset(LL_INCLUDE_DIR)
+				get_filename_component(LL_INCLUDE_DIR ${LL_INCLUDE_FILE} DIRECTORY)
+				fwmessage(STATUS "       - LL_INCLUDE_DIR  = ${LL_INCLUDE_DIR}")
+			endif()	
 		endif()
-	
-		unset(LL_INCLUDE_FILE)	
-		find_file (LL_INCLUDE_FILE "${LL_LIB_INCLUDE}" PATH_SUFFIXES ${PATHS} NO_CACHE)	
-		fwmessage(STATUS "       - LL_INCLUDE_FILE = ${LL_INCLUDE_FILE}")
-	
-		if(EXISTS ${LL_INCLUDE_FILE})	
-			# extract directory
-			get_filename_component(DIR ${LL_INCLUDE_FILE} DIRECTORY)
-			
-			# create cache entry for the lib include directory
-			set(${LL_LIB_NAME}_INCLUDE_DIR ${DIR} CACHE PATH "${LL_LIB_NAME} include directory")				
-			fwmessage(STATUS "LABEL = ${LL_ID}_INCLUDE_DIRS")
-			
-			# appen the directory to the ID list
-			list(APPEND ${LL_ID}_INCLUDE_DIRS  ${${LL_LIB_NAME}_INCLUDE_DIR})
-		else()
-			message(WARNING "Could not locate ${LL_LIB_NAME} include files")
-			set(${LL_FOUND_ID} OFF)
+
+		# create cache entry for the lib include directory
+		set(${LL_LIB_NAME}_INCLUDE_DIR ${LL_INCLUDE_DIR} CACHE PATH "${LL_LIB_NAME} include directory")				
+		fwmessage(STATUS "LABEL = ${LL_ID}_INCLUDE_DIRS")
+		
+		if(NOT EXISTS ${${LL_LIB_NAME}_INCLUDE_DIR}/${LL_LIB_INCLUDE})
 			if(REQUIRED)
-				message(FATAL_ERROR "Did not find required library ${LL_LIB_NAME}")
+				message(FATAL_ERROR "Could not locate ${LL_LIB_INCLUDE}")
+			else()
+				set(${LL_FOUND_ID} OFF)
 			endif()
 		endif()
+		
+		# appen the directory to the ID list
+		list(APPEND ${LL_ID}_INCLUDE_DIRS  ${${LL_LIB_NAME}_INCLUDE_DIR})		
 	endif()
 	
 	fwmessage(STATUS "${LL_FOUND_ID} = ${${LL_FOUND_ID}}")
