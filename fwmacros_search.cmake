@@ -47,24 +47,24 @@ macro(locate_library)
 		unset(LL_NAMES_DEBUG)
 	
 		if(LL_PREFER_SHARED)
-			set(LL_NAMES_RELEASE "${LL_LIB_NAME}.so" "${LL_LIB_NAME}*.so" "lib${LL_LIB_NAME}.so" "lib${LL_LIB_NAME}*.so" 
-			                     "${LL_LIB_NAME}.lib" "${LL_LIB_NAME}*.lib" "lib${LL_LIB_NAME}.lib" "lib${LL_LIB_NAME}*.lib"
-								 "${LL_LIB_NAME}.a" "${LL_LIB_NAME}*.a" "lib${LL_LIB_NAME}.a" "lib${LL_LIB_NAME}*.a"
-								 "${LL_LIB_NAME}_static.lib" "lib${LL_LIB_NAME}_static.lib")
-			set(LL_NAMES_DEBUG   "${LL_LIB_NAME}d.so" "${LL_LIB_NAME}d*.so" "lib${LL_LIB_NAME}d.so" "lib${LL_LIB_NAME}d*.so" 
-			                     "${LL_LIB_NAME}d.lib" "${LL_LIB_NAME}d*.lib" "lib${LL_LIB_NAME}d.lib" "lib${LL_LIB_NAME}d*.lib"
-								 "${LL_LIB_NAME}d.a" "${LL_LIB_NAME}d*.a" "lib${LL_LIB_NAME}d.a" "lib${LL_LIB_NAME}d*.a"
+			set(LL_NAMES_RELEASE "${LL_LIB_NAME}.so"          "lib${LL_LIB_NAME}.so"  
+			                     "${LL_LIB_NAME}.lib"         "lib${LL_LIB_NAME}.lib" 
+								 "${LL_LIB_NAME}.a"           "lib${LL_LIB_NAME}.a" 
+								 "${LL_LIB_NAME}_static.lib"  "lib${LL_LIB_NAME}_static.lib")
+			set(LL_NAMES_DEBUG   "${LL_LIB_NAME}d.so"         "lib${LL_LIB_NAME}d.so"  
+			                     "${LL_LIB_NAME}d.lib"        "lib${LL_LIB_NAME}d.lib" 
+								 "${LL_LIB_NAME}d.a"          "lib${LL_LIB_NAME}d.a" 
 								 "${LL_LIB_NAME}_staticd.lib" "lib${LL_LIB_NAME}_staticd.lib")
 			
 		else()
-			set(LL_NAMES_RELEASE "${LL_LIB_NAME}.a" "${LL_LIB_NAME}*.a" "lib${LL_LIB_NAME}.a" "lib${LL_LIB_NAME}*.a"
-								 "${LL_LIB_NAME}_static.lib" "lib${LL_LIB_NAME}_static.lib"
-								 "${LL_LIB_NAME}.so" "${LL_LIB_NAME}*.so" "lib${LL_LIB_NAME}.so" "lib${LL_LIB_NAME}*.so" 
-			                     "${LL_LIB_NAME}.lib" "${LL_LIB_NAME}*.lib" "lib${LL_LIB_NAME}.lib" "lib${LL_LIB_NAME}*.lib")
-			set(LL_NAMES_DEBUG   "${LL_LIB_NAME}d.a" "${LL_LIB_NAME}d*.a" "lib${LL_LIB_NAME}d.a" "lib${LL_LIB_NAME}d*.a"
-								 "${LL_LIB_NAME}_static.lib" "lib${LL_LIB_NAME}_static.lib"
-								 "${LL_LIB_NAME}d.so" "${LL_LIB_NAME}d*.so" "lib${LL_LIB_NAME}d.so" "lib${LL_LIB_NAME}d*.so" 
-			                     "${LL_LIB_NAME}d.lib" "${LL_LIB_NAME}d*.lib" "lib${LL_LIB_NAME}d.lib" "lib${LL_LIB_NAME}d*.lib")		
+			set(LL_NAMES_RELEASE "${LL_LIB_NAME}.a"           "lib${LL_LIB_NAME}.a" 
+								 "${LL_LIB_NAME}_static.lib"  "lib${LL_LIB_NAME}_static.lib"
+								 "${LL_LIB_NAME}.so"          "lib${LL_LIB_NAME}.so"  
+			                     "${LL_LIB_NAME}.lib"         "lib${LL_LIB_NAME}.lib" )
+			set(LL_NAMES_DEBUG   "${LL_LIB_NAME}d.a"          "lib${LL_LIB_NAME}d.a" 
+								 "${LL_LIB_NAME}_static.lib"  "lib${LL_LIB_NAME}_static.lib"
+								 "${LL_LIB_NAME}d.so"         "lib${LL_LIB_NAME}d.so"  
+			                     "${LL_LIB_NAME}d.lib"        "lib${LL_LIB_NAME}d.lib" )		
 		endif()
 		fwmessage(STATUS "       - LL_NAMES_RELEASE = ${LL_NAMES_RELEASE}")
 		fwmessage(STATUS "       - LL_NAMES_DEBUG   = ${LL_NAMES_DEBUG}")
