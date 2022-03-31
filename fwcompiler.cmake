@@ -68,6 +68,8 @@ if(USE_CLANG_COMPILER)
 	OPTION( USE_Wpedantic "Use -Wpedantic" OFF)
 	OPTION( USE_Wthreadsafety "Use -Wthread-safety" OFF)
 
+	OPTION( CLANG_LINKTIME_OPTIMIZATION "Activate GNU link time optimization (warning slow)" OFF)
+
 	set(CLANG_ARCHITECTURE "native" CACHE STRING "Compile for CPU architecture")
 	OPTION (CLANG_STATIC_ANALYSIS "Use the clang static analyzer" OFF)
 	
@@ -104,6 +106,8 @@ if(USE_GNU_COMPILER)
 	OPTION( USE_Wall "Use -Wall" ON)
 	OPTION( USE_Wextra "Use -Wextra" ON)
 	OPTION( USE_Wpedantic "Use -Wpedantic" ON)
+	
+	OPTION( GNU_LINKTIME_OPTIMIZATION "Activate GNU link time optimization (warning slow)" OFF)
 endif()
 
 # -------------------
@@ -284,6 +288,12 @@ macro(set_target_cxx_config)
 			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wthread-safety>)
 		endif()
 			
+		# link time optimization
+		if(CLANG_LINKTIME_OPTIMIZATION)
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-flto=thin>)
+			target_link_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-flto=thin>)
+		endif()
+			
 		# set architecture
 		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-march=${CLANG_ARCHITECTURE}>)
 			
@@ -348,6 +358,11 @@ macro(set_target_cxx_config)
 		if(USE_Wpedantic)
 			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>)
 		endif()			
+		
+		if(GNU_LINKTIME_OPTIMIZATION)		
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-flto>)
+			target_link_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-flto>)
+		endif()
 		
 		# copy c++ flags to C
 		set(CMAKE_C_FLAGS ${CMAKE_CXX_FLAGS})
