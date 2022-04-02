@@ -119,7 +119,7 @@ macro(make_executable)
     #add cuda runtime if requested
     if(ME_CUDA)
         # configure CUDA
-        include(cuda)
+        include(fwmacros_cuda)
             
         list(APPEND PROJECT_SOURCE_FILES ${ML_CUDA_SOURCE_FILES})
         list(APPEND PROJECT_HEADER_FILES ${ML_CUDA_HEADER_FILES})    

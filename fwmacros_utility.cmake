@@ -1,21 +1,6 @@
-# macro: fwmessage
-#   verbosity macro for std cmake message alllowing control of verbosity
-macro(fwmessage _type _text)
-
-    if(FWMACROS_VERBOSE)
-        message(${_type} "${_text}")
-    endif() 
-endmacro()
 
 # load standard path names (std cmake module)
 include(GNUInstallDirs)
-
-# load std lib options
-include(fwlib_options)
-
-# include compiler options
-include(fwcompiler)
-
 
 # macro: realize_package_dependency
 #       find and activate specific package dependency

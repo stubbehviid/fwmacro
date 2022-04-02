@@ -44,15 +44,7 @@ macro(locate_library)
 			set(LL_LIB_RELEASE_LABEL 	"${LL_LIB_NAME}_STATIC_LIBRARY_RELEASE")
 			set(LL_LIB_DEBUG_LABEL 		"${LL_LIB_NAME}_STATIC_LIBRARY_DEBUG")
 		endif()
-	
-		#define the list of input folders for the search
-		if(WIN32)
-			set(LL_PATHS ${CMAKE_INSTALL_PREFIX} "c:/Program Files")
-		else()
-			set(LL_PATHS /usr/local/lib /opt/lib /usr/lib /usr/lib/x86_64-linux-gnu ${CMAKE_INSTALL_PREFIX})
-		endif()
-		fwmessage(STATUS "       - PATH = ${LL_PATHS}")
-		
+			
 		# define lists of search therms
 		if(LL_PREFER_SHARED)
 			set(LL_NAMES_RELEASE "${LL_LIB_NAME}.so"          "lib${LL_LIB_NAME}.so"  
@@ -79,9 +71,18 @@ macro(locate_library)
 				
 		if(NOT EXISTS ${${LL_LIB_RELEASE_LABEL}})
 			fwmessage(STATUS "Searching for ${LL_LIB_NAME} - release")
+		
+			#define the list of input folders for the search
+			if(WIN32)
+				set(LL_PATHS "${VCPKG_INSTALLED_PATH}" "${VCPKG_INSTALLED_PATH}-static" ${CMAKE_INSTALL_PREFIX} "c:/Program Files")
+			else()
+				set(LL_PATHS /usr/local/lib /opt/lib /usr/lib /usr/lib/x86_64-linux-gnu ${CMAKE_INSTALL_PREFIX})
+			endif()
+			fwmessage(STATUS "       - PATH = ${LL_PATHS}")
+						
 			# locate release library
 			set(LL_LIB_RELEASE LL_LIB_RELEASE-NOTFOUND)
-			find_library(LL_LIB_RELEASE NAMES ${LL_NAMES_RELEASE} PATHS ${LL_PATHS} NO_CACHE)
+			find_library(LL_LIB_RELEASE NAMES ${LL_NAMES_RELEASE} PATHS ${LL_PATHS} PATH_SUFFIXES lib ${LL_LIB_NAME} lib/${LL_LIB_NAME} NO_CACHE)
 		else()
 			fwmessage(STATUS "Using cached location for ${LL_LIB_NAME} - release")
 			set(LL_LIB_RELEASE  ${${LL_LIB_RELEASE_LABEL}})
@@ -89,9 +90,19 @@ macro(locate_library)
 		
 		if(NOT EXISTS ${${LL_LIB_DEBUG_LABEL}})
 			fwmessage(STATUS "Searching for ${LL_LIB_NAME} - debug")
+		
+			#define the list of input folders for the search
+			if(WIN32)
+				set(LL_PATHS "${VCPKG_INSTALLED_PATH}/debug" "${VCPKG_INSTALLED_PATH}-static/debug" "${VCPKG_INSTALLED_PATH}" "${VCPKG_INSTALLED_PATH}-static" "${CMAKE_INSTALL_PREFIX}" "c:/Program Files")
+			else()
+				set(LL_PATHS /usr/local/lib /opt/lib /usr/lib /usr/lib/x86_64-linux-gnu ${CMAKE_INSTALL_PREFIX})
+			endif()
+			fwmessage(STATUS "       - PATH = ${LL_PATHS}")
+		
+			
 			# locate debug library
 			set(LL_LIB_DEBUG LL_LIB_DEBUG-NOTFOUND)
-			find_library(LL_LIB_DEBUG NAMES ${LL_NAMES_DEBUG} PATHS ${LL_PATHS} NO_CACHE)
+			find_library(LL_LIB_DEBUG NAMES ${LL_NAMES_DEBUG} PATHS ${LL_PATHS} PATH_SUFFIXES lib ${LL_LIB_NAME} lib/${LL_LIB_NAME} NO_CACHE)
 		else()
 			fwmessage(STATUS "Using cached location for ${LL_LIB_NAME} - debug")
 			set(LL_LIB_DEBUG  ${${LL_LIB_DEBUG_LABEL}})
@@ -137,12 +148,13 @@ macro(locate_library)
 		if(NOT EXISTS ${LL_INCLUDE_DIR}/${LL_LIB_INCLUDE})
 		
 			# Where to look for include file
-			set(PATHS ${CMAKE_INSTALL_PREFIX})
+			set(PATHS )
 			if(WIN32)
-				list(APPEND PATHS "c:/Program Files")
+				list(APPEND PATHS "${VCPKG_INSTALLED_PATH}/include" "${VCPKG_INSTALLED_PATH}-static/include" "c:/Program Files")
 			else()
 				list(APPEND PATHS "/usr/local/include" "/usr/include" "/opt/include" "~/include")
 			endif()
+			list(APPEND PATHS ${CMAKE_INSTALL_PREFIX})
 		
 			unset(LL_INCLUDE_FILE)	
 			find_file (LL_INCLUDE_FILE "${LL_LIB_INCLUDE}" PATHS ${PATHS} PATH_SUFFIXES ${LL_LIB_NAME} lib${LL_LIB_NAME} NO_CACHE)	
