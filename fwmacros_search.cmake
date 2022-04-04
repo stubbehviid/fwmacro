@@ -186,16 +186,17 @@ macro(locate_library)
 			# create cache entry for the lib include directory			
 			set(${LL_INCLUDE_LABEL} "${LL_FOUND_INCLUDE_DIR}" CACHE PATH "${LL_LIB_NAME} include directory" FORCE)
 			fwmessage(STATUS "Setting ${LL_INCLUDE_LABEL} = ${${LL_INCLUDE_LABEL}}")			
-		endif()
-		
-		if(NOT EXISTS "${${LL_INCLUDE_LABEL}}/${LL_LIB_INCLUDE_FILE}")
-			message(WARNING "Could not locate ${LL_LIB_INCLUDE_FILE}")
-			set(${LL_FOUND_ID} OFF)
-			if(REQUIRED)
-				message(FATAL_ERROR "It was required!")
+			
+			if(NOT EXISTS "${${LL_INCLUDE_LABEL}}/${LL_LIB_INCLUDE_FILE}")
+				message(WARNING "Could not locate ${LL_LIB_INCLUDE_FILE}")
+				set(${LL_FOUND_ID} OFF)
+				if(REQUIRED)
+					message(FATAL_ERROR "It was required!")
+				endif()
 			endif()
+			
 		endif()
-		
+			
 		# appen the directory to the ID list
 		list(APPEND ${LL_ID}_INCLUDE_DIRS  ${${LL_LIB_NAME}_INCLUDE_DIR})		
 	endif()
