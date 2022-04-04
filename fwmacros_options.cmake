@@ -1,5 +1,4 @@
 
-OPTION (FWMACROS_VERBOSE "verbose output from fwmacros.cmake" OFF)
 OPTION (USE_PRECOMPILED_HEADERS "Use precompiled headers" ON)
 
 set(LIB_INSTALL_DIR "" CACHE PATH "Installation directory for libraries")

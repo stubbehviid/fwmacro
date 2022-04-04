@@ -2,6 +2,8 @@
 # === fwmacros master include file ===
 # ====================================
 
+OPTION (FWMACROS_VERBOSE "verbose output from fwmacros.cmake" OFF)
+
 # macro: fwmessage
 #   verbosity macro for std cmake message alllowing control of verbosity
 macro(fwmessage _type _text)
