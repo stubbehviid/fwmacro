@@ -6,11 +6,15 @@
 set(USE_CLANG_COMPILER OFF)
 set(USE_GNU_COMPILER OFF)
 set(USE_MSVC_COMPILER OFF)
+set(USE_BCB_COMPILER OFF)
 
 # then activate the compiler that is actually used
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	fwmessage(STATUS "Compiler is CLANG")
 	set(USE_CLANG_COMPILER ON)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Embarcadero")
+	fwmessage(STATUS "Compiler is BCB")
+	set(USE_BCB_COMPILER ON)	
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	fwmessage(STATUS "Compiler is GNU")
 	set(USE_GNU_COMPILER ON)
@@ -143,7 +147,9 @@ macro(set_target_cxx_config)
     cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
 
 	# set language standard
-	target_compile_features(${P_TARGET} PRIVATE ${CXX_COMPILER_STANDARD})
+	if(NOT USE_BCB_COMPILER)
+		target_compile_features(${P_TARGET} PRIVATE ${CXX_COMPILER_STANDARD})
+	endif()
 	
 	# create debug libraries with 'd' postfix
 	set_property(TARGET ${P_TARGET} PROPERTY DEBUG_POSTFIX d)	
