@@ -81,8 +81,8 @@ endmacro()
 
 
 
-#macro: install_library
-#       Utility macro for handling the installation of libraries
+#macro: locate_library
+#       Utility macro locating libraries without packet definition
 #
 #   PREFER_STATIC           If set the macro will look for static libraries before shared libraries
 #   PREFER_SHARED           If set the macro will look for shared libraries before static libraries
@@ -122,7 +122,10 @@ macro(locate_library)
 		set(LL_LIB_RELEASE_LABEL 	"${LL_LIB_NAME}_STATIC_LIBRARY_RELEASE")
 		set(LL_LIB_DEBUG_LABEL 		"${LL_LIB_NAME}_STATIC_LIBRARY_DEBUG")
 	endif()
-	
+	set(LL_LIB_INCLUDE_DIRS_LABEL "${LL_LIB_NAME}_INCLUDE_DIRS")
+	set(LL_INCLUDE_DIRS_LABEL	  "${LL_ID}_INCLUDE_DIRS")
+	set(LL_LIBRARIES_LABEL	      "${LL_ID}_LIBRARIES")
+		
 	# ------------------------------------	
 	# search for libraries
 	# ------------------------------------	
@@ -162,15 +165,15 @@ macro(locate_library)
 			
 		if(EXISTS ${${LL_LIB_RELEASE_LABEL}})
 			if(EXISTS ${${LL_LIB_DEBUG_LABEL}})
-				list(APPEND ${LL_ID}_LIBRARIES optimized ${${LL_LIB_RELEASE_LABEL}} debug ${${LL_LIB_DEBUG_LABEL}})
+				list(APPEND ${LL_LIBRARIES_LABEL} optimized ${${LL_LIB_RELEASE_LABEL}} debug ${${LL_LIB_DEBUG_LABEL}})
 			else()
-				list(APPEND ${LL_ID}_LIBRARIES ${${LL_LIB_RELEASE_LABEL}})
+				list(APPEND ${LL_LIBRARIES_LABEL} ${${LL_LIB_RELEASE_LABEL}})
 			endif()
 		else()
 			message(ERROR "Could not locate: ${LL_LIB_RELEASE_LABEL}")
 		endif()
 		
-		fwmessage(STATUS "${LL_ID}_LIBRARIES = ${${LL_ID}_LIBRARIES}")
+		fwmessage(STATUS "${LL_LIBRARIES_LABEL} = ${${LL_ID}_LIBRARIES}")
 	endif()
 	
 	# ------------------------------------	
@@ -178,10 +181,7 @@ macro(locate_library)
 	# ------------------------------------	
 	if(NOT "${LL_LIB_INCLUDE_FILE}" STREQUAL "")
 		fwmessage(STATUS "Start searching for ${LL_LIB_INCLUDE_FILE}")
-
-		# define result label
-		set(LL_INCLUDE_LABEL "${LL_LIB_NAME}_INCLUDE_DIR")
-
+		
 		fwmessage(STATUS "Check if ${LL_LIB_INCLUDE_FILE} is valid and exists in ${${LL_INCLUDE_LABEL}}")	
 		if("${${LL_INCLUDE_LABEL}}" STREQUAL "" OR NOT EXISTS "${${LL_INCLUDE_LABEL}}/${LL_LIB_INCLUDE_FILE}")
 			fwmessage(STATUS "does not exist - so do actual do search for file ${LL_LIB_INCLUDE_FILE}")
@@ -192,31 +192,38 @@ macro(locate_library)
 			else()
 				set(SEARCH_PATHS "${VCPKG_INSTALLED_PATH}/include" "${VCPKG_INSTALLED_PATH}-static/include")
 			endif()
-			list(APPEND SEARCH_PATHS ${CMAKE_INSTALL_PREFIX})
+			list(APPEND SEARCH_PATHS "${CMAKE_INSTALL_PREFIX}/include")
 			if(NOT WIN32)
 				list(APPEND SEARCH_PATHS "/usr/local/include" "/usr/include" "/opt/include" "~/include")
 			endif()
 			
 			fwmessage(STATUS "Search in ${SEARCH_PATHS}")
 				
-			unset(LL_FOUND_INCLUDE_FILE)
+			unset(LL_FOUND_INCLUDE_DIR)
 			foreach(F IN LISTS SEARCH_PATHS)
 				if(NOT EXISTS "${LL_FOUND_INCLUDE_DIR}/${LL_LIB_INCLUDE_FILE}")
-					if(EXISTS "${F}/${LL_LIB_INCLUDE_FILE}")
-						set(LL_FOUND_INCLUDE_DIR "${F}")
-					elseif(EXISTS "${F}/${LL_LIB_NAME}/${LL_LIB_INCLUDE_FILE}")
-						set(LL_FOUND_INCLUDE_DIR "${F}/${LL_LIB_NAME}")
+					set(TEST1 "${F}")
+					set(TEST2 "${F}/${LL_LIB_NAME}")
+					set(TEST3 "${F}/lib${LL_LIB_NAME}")
+								
+					if(EXISTS "${TEST1}/${LL_LIB_INCLUDE_FILE}")
+						set(LL_FOUND_INCLUDE_DIR "${TEST1}")
+					elseif(EXISTS "${TEST2}/${LL_LIB_INCLUDE_FILE}")
+						set(LL_FOUND_INCLUDE_DIR "${TEST2}")
+					elseif(EXISTS "${TEST3}/${LL_LIB_INCLUDE_FILE}")
+						set(LL_FOUND_INCLUDE_DIR "${TEST3}")
 					endif()
+					fwmessage(STATUS "LL_FOUND_INCLUDE_DIR = ${LL_FOUND_INCLUDE_DIR}")
 				endif()
 			endforeach()
 			
 			fwmessage(STATUS "search result: LL_FOUND_INCLUDE_DIR = ${LL_FOUND_INCLUDE_DIR}")
 					
 			# create cache entry for the lib include directory			
-			set(${LL_INCLUDE_LABEL} "${LL_FOUND_INCLUDE_DIR}" CACHE PATH "${LL_LIB_NAME} include directory" FORCE)
-			fwmessage(STATUS "Setting ${LL_INCLUDE_LABEL} = ${${LL_INCLUDE_LABEL}}")			
+			set(${LL_LIB_INCLUDE_DIRS_LABEL} "${LL_FOUND_INCLUDE_DIR}" CACHE PATH "${LL_LIB_NAME} include directory" FORCE)
+			fwmessage(STATUS "Setting ${LL_LIB_INCLUDE_DIRS_LABEL} = ${${LL_LIB_INCLUDE_DIRS_LABEL}}")			
 			
-			if(NOT EXISTS "${${LL_INCLUDE_LABEL}}/${LL_LIB_INCLUDE_FILE}")
+			if(NOT EXISTS "${${LL_LIB_INCLUDE_DIRS_LABEL}}/${LL_LIB_INCLUDE_FILE}")
 				message(WARNING "Could not locate ${LL_LIB_INCLUDE_FILE}")
 				set(${LL_FOUND_ID} OFF)
 				if(REQUIRED)
@@ -227,12 +234,21 @@ macro(locate_library)
 		endif()
 			
 		# appen the directory to the ID list
-		list(APPEND ${LL_ID}_INCLUDE_DIRS  ${${LL_LIB_NAME}_INCLUDE_DIR})		
+		list(APPEND ${LL_INCLUDE_DIRS_LABEL}  "${${LL_LIB_INCLUDE_DIRS_LABEL}}")
 	endif()
 	
 	fwmessage(STATUS "${LL_FOUND_ID} = ${${LL_FOUND_ID}}")
 	
 	# clean-up
-	list(REMOVE_DUPLICATES ${LL_ID}_INCLUDE_DIRS)	
-	#list(REMOVE_DUPLICATES ${LL_ID}_LIBRARIES)	
+	fwmessage(STATUS "LL_INCLUDE_DIRS_LABEL = ${LL_INCLUDE_DIRS_LABEL}")
+	list(REMOVE_DUPLICATES ${LL_INCLUDE_DIRS_LABEL})	
+	
+	# log result
+	fwmessage(STATUS "${LL_LIB_INCLUDE_DIRS_LABEL} = ${${LL_LIB_INCLUDE_DIRS_LABEL}}")
+	fwmessage(STATUS "${LL_LIB_RELEASE_LABEL} = ${${LL_LIB_RELEASE_LABEL}}")
+	fwmessage(STATUS "${LL_LIB_DEBUG_LABEL}   = ${${LL_LIB_DEBUG_LABEL}}")
+	
+	fwmessage(STATUS "${LL_INCLUDE_DIRS_LABEL}  = ${${LL_INCLUDE_DIRS_LABEL}}")
+	fwmessage(STATUS "${LL_LIBRARIES_LABEL}     = ${${LL_LIBRARIES_LABEL}}")
+	
 endmacro()
