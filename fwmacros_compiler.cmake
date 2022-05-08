@@ -61,6 +61,10 @@ if(USE_MSVC_COMPILER)
 	OPTION (MSVC_PARALLEL_COMPILATION "Use parallel compilation" ON)
 endif()
 
+if(USE_BCB_COMPILER)
+
+endif()
+
 if(USE_CLANG_COMPILER)
 	# select stdlib
 	set(CLANG_STDLIB "default" CACHE STRING "Select the version of the C++ STL to be used")
