@@ -52,6 +52,7 @@ set_property(CACHE CXX_COMPILER_STANDARD PROPERTY STRINGS cxx_std_98 cxx_std_11 
 #--------------------------
 # Compiler specific options
 
+# MSVC Compiler specific options
 if(USE_MSVC_COMPILER)
 	#OPTION (MSVC_USE_EXPERIMENTAL_OPENMP "use the MSVC --openmp:experimental clause" ON)
 	
@@ -61,10 +62,13 @@ if(USE_MSVC_COMPILER)
 	OPTION (MSVC_PARALLEL_COMPILATION "Use parallel compilation" ON)
 endif()
 
-if(USE_BCB_COMPILER)
 
+# Embarcadero BCB Compiler specific options
+if(USE_BCB_COMPILER)
+	
 endif()
 
+# CLANG Compiler specific options
 if(USE_CLANG_COMPILER)
 	# select stdlib
 	set(CLANG_STDLIB "default" CACHE STRING "Select the version of the C++ STL to be used")
@@ -109,6 +113,7 @@ if(USE_CLANG_COMPILER)
 	set(CLANG_ADDITIONAL_ARGUMENTS "" CACHE PATH "Additional commandline arguments for clang compiler")
 endif()
 
+# GNU Compiler specific options
 if(USE_GNU_COMPILER)
 	OPTION( USE_Werror "Treat warnings as errors -Werror" OFF)
 	OPTION( USE_Wall "Use -Wall" ON)
@@ -150,7 +155,7 @@ macro(set_target_cxx_config)
     set(multiValueArgs )
     cmake_parse_arguments(P "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
 
-	# set language standard
+	# set language standard (if compiler if NOT BCB)
 	if(NOT USE_BCB_COMPILER)
 		target_compile_features(${P_TARGET} PRIVATE ${CXX_COMPILER_STANDARD})
 	endif()
@@ -252,6 +257,40 @@ macro(set_target_cxx_config)
 		# set position independent output
 		set_target_properties(${P_TARGET} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 	endif()
+	
+	# ---------------------------
+	# BCB Compiler configuration
+	if(USE_BCB_COMPILER)
+		# Optimizations
+		target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:-${OPTIMIZATION_LEVEL_DEBUG}>)
+		target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:-${OPTIMIZATION_LEVEL_RELEASE}>)
+					
+		# SIMD settings
+		if(USE_SSE)
+			fwmessage(STATUS "Building with SSE SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-msse>)
+		elseif(USE_SSE2)
+			fwmessage(STATUS "Building with SSE2 SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-msse2>)
+		elseif(USE_AVX)
+			fwmessage(STATUS "Building with AVX SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-mavx>)
+		elseif(USE_AVX2)
+			fwmessage(STATUS "Building with AVX2 SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-mavx -mavx2 -mfma>)
+		elseif(USE_AVX512)
+			fwmessage(STATUS "Building with AVX512 SIMD code generation")
+			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-mavx512>)
+		endif()	
+
+		# add additional commenline arguments
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${CLANG_ADDITIONAL_ARGUMENTS}>)	
+		
+		if(USE_BCB_COMPILER)
+			# set_embt_target(“DynamicRuntime”)
+		endif()
+	endif()
+	
 	
 	# ---------------------------
 	# CLANG Compiler configuration
