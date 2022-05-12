@@ -296,8 +296,11 @@ macro(set_target_cxx_config)
 	# CLANG Compiler configuration
 	if(USE_CLANG_COMPILER)
 		# Optimizations
+		
+		target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-${OPTIMIZATION_LEVEL_RELEASE}>)
+		#target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:-${OPTIMIZATION_LEVEL_RELEASE}>)
 		target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:-${OPTIMIZATION_LEVEL_DEBUG}>)
-		target_compile_options(${P_TARGET} PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:-${OPTIMIZATION_LEVEL_RELEASE}>)
+		
 		
 		if(${CLANG_TARGET_DEBUGGER} STREQUAL "default")
 			target_compile_options(${P_TARGET} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-g>)
