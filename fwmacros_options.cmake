@@ -15,6 +15,7 @@ if(WIN32)
 	else()
 		set(ARCH "x86")
 	endif()
+	set(STATIC_SUB "-static")
 endif()
 	
 if(APPLE)
@@ -37,7 +38,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 endif()
 		
 set(VCPKG_INSTALLED_PATH "${VCPKG_ROOT_PATH}/installed/${ARCH}-${OS}")	
-set(VCPKG_INSTALLED_STATIC_PATH "${VCPKG_ROOT_PATH}/installed/${ARCH}-${OS}-static")	
+set(VCPKG_INSTALLED_STATIC_PATH "${VCPKG_ROOT_PATH}/installed/${ARCH}-${OS}${STATIC_SUB}")	
 set(CMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT_PATH}/scripts/buildsystems/vcpkg.cmake")
 		
 fwmessage(STATUS "Using VCPKG installed folder:          ${VCPKG_INSTALLED_PATH}")
